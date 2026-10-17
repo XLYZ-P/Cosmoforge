@@ -1,20 +1,21 @@
 # Cosmoforge releases
 
-## `cosmoforge-0.1.0.tar.gz`
+## `cosmoforge-0.0.1a0.tar.gz`
 
-标准 Python 源码分发包（**sdist**），与操作系统和 CPU 架构无关。
+Release **alpha0.0.1**（PEP 440 版本号 `0.0.1a0`）的标准 Python 源码分发包（**sdist**），
+与操作系统和 CPU 架构无关。
 
 安装：
 
 ```bash
-pip install cosmoforge-0.1.0.tar.gz
+pip install cosmoforge-0.0.1a0.tar.gz
 ```
 
 或解压后直接运行（免安装）：
 
 ```bash
-tar xzf cosmoforge-0.1.0.tar.gz
-cd cosmoforge-0.1.0
+tar xzf cosmoforge-0.0.1a0.tar.gz
+cd cosmoforge-0.0.1a0
 python -m unittest discover -s tests -v   # 43 passed
 python -m cosmoforge demo --out cosmos.html --open
 ```
