@@ -1,0 +1,9 @@
+include README.md
+include COMPATIBILITY.md
+include LICENSE
+include pyproject.toml
+recursive-include cosmoforge/web *
+recursive-include examples *
+recursive-include tests *
+global-exclude *.pyc *.pyo
+global-exclude __pycache__

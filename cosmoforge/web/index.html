@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>__TITLE__ — Cosmos Mind Map</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<header id="bar">
+  <div class="brand">✦ __TITLE__</div>
+  <input id="search" placeholder="Search nodes…" autocomplete="off" />
+  <div class="seedwrap" title="输入种子后按回车重新生成；留空则随机">
+    <input id="seed" type="number" min="0" step="1" placeholder="种子" autocomplete="off" />
+    <button data-act="regenerate">生成</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="zoomwrap">
+    <button data-act="out" title="Zoom out (−)">－</button>
+    <input id="zoom" type="range" min="8" max="350" value="100" />
+    <button data-act="in" title="Zoom in (+)">＋</button>
+    <span id="zoomval">100%</span>
+  </div>
+  <button data-act="fit" title="Fit to window (F)">适应</button>
+  <button data-act="reset" title="Reset to 100% (0)">100%</button>
+  <button data-act="evolve" id="evolve-btn" title="持续自动生成新分支">动态演化</button>
+  <button data-act="timeline" id="tl-toggle">时间线</button>
+  <button data-act="collapse">折叠全部</button>
+  <button data-act="expandall">展开全部</button>
+  <button data-act="archive" id="archive-btn">存档</button>
+  <button data-act="svg">导出 SVG</button>
+</header>
+<main>
+  <svg id="map">
+    <g id="viewport">
+      <g id="links"></g>
+      <g id="nodes"></g>
+    </g>
+  </svg>
+  <aside id="panel" class="hidden"></aside>
+  <div id="legend"></div>
+  <div id="hint">点击/轻点折叠 · 拖拽/单指平移 · 双指捏合或滚轮缩放 · 双击放大 · 快捷键 + − 0 F</div>
+</main>
+<section id="timeline" class="hidden">
+  <div id="tl-handle" title="拖动调整高度"></div>
+  <div id="tl-head">
+    <b>时间线</b>
+    <button id="tl-play" title="播放时间线">▶ 播放</button>
+    <span id="tl-clock">0.00 Gyr</span>
+    <span class="spacer"></span>
+    <span class="sub">横轴：大爆炸之后的宇宙时间（Gyr）· 顶栏：大爆炸纪元（对数时间，秒）</span>
+  </div>
+  <div id="tl-body"><svg id="tl"></svg></div>
+</section>
+<div id="archive-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="archive-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <b id="archive-title">存档</b>
+      <span class="modal-close" data-archive-close="1" title="关闭">✕</span>
+    </div>
+    <div class="save-row">
+      <input id="archive-name" placeholder="存档名称（可选）" maxlength="80" autocomplete="off" />
+      <button id="archive-save">保存当前</button>
+    </div>
+    <div class="archive-hint">存档是服务器上的 JSON 文件，包含当前整棵树（含 LLM 展开的内容）。</div>
+    <div id="archive-list" class="archive-list"><div class="empty">加载中…</div></div>
+    <div class="modal-foot">
+      <span id="archive-status"></span>
+      <button id="archive-refresh">刷新</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

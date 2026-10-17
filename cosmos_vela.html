@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Vela Branch — Cosmos Mind Map</title>
+<style>
+:root{
+    --bg:#0b0f19; --bg2:#111726; --bg3:#0e1524; --line:#26314a; --fg:#e8ecf5;
+    --muted:#8b97b0; --accent:#f5c451;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:radial-gradient(1200px 800px at 20% -10%, #16203a 0%, var(--bg) 55%);
+    color:var(--fg);
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,"Noto Sans SC",sans-serif;
+    overflow:hidden;
+  }
+  #bar{
+    position:fixed;inset:0 0 auto 0;min-height:52px;display:flex;align-items:center;
+    gap:8px;padding:6px 14px;background:rgba(10,14,24,.9);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);z-index:20;flex-wrap:wrap;
+  }
+  #bar .brand{font-weight:700;letter-spacing:.3px;color:var(--accent);white-space:nowrap;
+    max-width:26vw;overflow:hidden;text-overflow:ellipsis}
+  #search{
+    background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:6px 10px;min-width:150px;outline:none;
+  }
+  #search:focus{border-color:var(--accent)}
+  #bar .spacer{flex:1}
+  button{
+    background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;
+  }
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  .zoomwrap{display:flex;align-items:center;gap:8px;
+    background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:3px 10px}
+  #zoom{width:130px;accent-color:var(--accent)}
+  #zoomval{color:var(--muted);font-size:12px;min-width:40px;text-align:right}
+  main{position:fixed;inset:var(--barh,52px) 0 0 0}
+  svg#map{width:100%;height:100%;display:block;cursor:grab}
+  svg#map.dragging{cursor:grabbing}
+  .link{fill:none;stroke:#33405e;stroke-width:1.6}
+  .link.active{stroke:var(--accent);stroke-width:2.4}
+  .node{cursor:pointer}
+  .node rect{stroke:rgba(255,255,255,.14);stroke-width:1;
+    transform-box:fill-box;transform-origin:center}
+  .node text{fill:#0b0f19;font-size:13px;font-weight:600;dominant-baseline:middle;
+    pointer-events:none;user-select:none}
+  .node.dim{opacity:.28}
+  .node.hit rect{stroke:#fff;stroke-width:2.4}
+  .node.active rect{stroke:var(--accent);stroke-width:2.6}
+  #panel{
+    position:fixed;top:calc(var(--barh,52px) + 14px);right:14px;width:352px;
+    max-height:calc(100vh - var(--barh,52px) - 70px);
+    overflow:auto;background:rgba(17,23,38,.97);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;z-index:15;box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  #panel.hidden{display:none}
+  #panel h2{margin:0 0 4px;font-size:16px}
+  #panel .kind{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1.4px}
+  #panel p{color:#cdd6ea;font-size:13px;white-space:pre-wrap}
+  #panel table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px}
+  #panel td{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+  #panel td:first-child{color:var(--muted);padding-right:10px;white-space:nowrap}
+  #panel .close{float:right;cursor:pointer;color:var(--muted)}
+  #panel .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  #panel .actions button{background:#182238}
+  #panel .status{margin-top:10px;font-size:12px;color:var(--muted);min-height:14px}
+  #legend{
+    position:fixed;left:14px;bottom:14px;z-index:15;background:rgba(17,23,38,.92);
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;
+  }
+  #legend .row{display:flex;align-items:center;gap:8px;margin:2px 0}
+  #legend .chip{width:11px;height:11px;border-radius:3px;display:inline-block}
+  #hint{position:fixed;right:16px;bottom:14px;color:var(--muted);font-size:11.5px;z-index:15}
+
+  /* ---- timeline panel ---- */
+  #timeline{
+    position:fixed;left:0;right:0;bottom:0;height:44vh;min-height:150px;z-index:18;
+    background:rgba(9,13,22,.98);border-top:1px solid var(--line);
+    display:flex;flex-direction:column;transform:translateY(0);transition:transform .18s ease;
+  }
+  #timeline.hidden{transform:translateY(101%)}
+  #tl-handle{height:12px;cursor:ns-resize;background:linear-gradient(transparent,rgba(245,196,81,.10));
+    border-top:1px solid var(--line);flex:0 0 auto}
+  #tl-head{display:flex;align-items:center;gap:10px;padding:4px 14px;flex:0 0 auto;
+    border-bottom:1px solid rgba(38,49,74,.6)}
+  #tl-head b{color:var(--accent);font-size:13px}
+  #tl-head .sub{color:var(--muted);font-size:11.5px}
+  #tl-body{flex:1 1 auto;overflow:auto;padding:0 0 6px}
+  svg#tl{display:block}
+  .tl-cap{fill:var(--muted);font-size:10px;letter-spacing:.6px}
+  .tl-axis{stroke:var(--line);stroke-width:1}
+  .tl-grid{stroke:#1c2438;stroke-width:1}
+  .tl-gridlabel{fill:var(--muted);font-size:10px}
+  .tl-tick{stroke:#ff8a3d;stroke-width:1}
+  .tl-elabel{fill:#c9a227;font-size:9px}
+  .tl-rowlabel{fill:#c4cde0;font-size:11.5px}
+  .tl-rowlabel.hi{fill:var(--accent)}
+  .tl-bar{opacity:.35;rx:3}
+  .tl-ev{cursor:pointer}
+  .tl-ev:hover{stroke:#fff;stroke-width:1.6}
+  /* ---- touch, motion & live generation ---- */
+  svg#map{touch-action:none;user-select:none;-webkit-user-select:none}
+  #viewport.smooth{transition:transform .42s cubic-bezier(.22,.8,.24,1)}
+  #bar button{min-height:34px;touch-action:manipulation}
+  input#zoom{height:26px;cursor:pointer}
+  #zoom::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+    border-radius:50%;background:var(--accent);border:none}
+  #zoom::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--accent)}
+  @keyframes nodeIn{from{opacity:0}to{opacity:1}}
+  @keyframes nodePop{from{transform:scale(.82)}to{transform:scale(1)}}
+  @keyframes linkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  .node.enter > rect{animation:nodePop .42s cubic-bezier(.2,.9,.3,1.25) both;
+    animation-delay:var(--d,0ms)}
+  .node.enter > text{animation:nodeIn .36s ease both;animation-delay:var(--d,0ms)}
+  .link.enter{stroke-dasharray:1;stroke-dashoffset:1;animation:linkDraw .5s ease forwards;
+    animation-delay:var(--d,0ms)}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 20px 50px rgba(0,0,0,.5)}
+    50%{box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 26px rgba(245,196,81,.28)}}
+  #panel.working{animation:pulseGlow 1.5s ease-in-out infinite}
+  #panel p.streaming::after{content:"▍";color:var(--accent);
+    animation:blink .8s steps(1) infinite;margin-left:1px}
+  @keyframes blink{50%{opacity:0}}
+  .status .dot{display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);margin-left:3px;animation:bounce 1s infinite}
+  .status .dot:nth-child(2){animation-delay:.15s}
+  .status .dot:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.35}
+    40%{transform:translateY(-4px);opacity:1}}
+  #evolve-btn.on{border-color:#3fbf7f;color:#7ee2b0;
+  animation:evolvePulse 1.6s ease-in-out infinite}
+@keyframes evolvePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(63,191,127,0)}
+  50%{box-shadow:0 0 14px 0 rgba(63,191,127,.38)}
+}
+#tl-play{min-width:66px;padding:3px 9px;font-size:12px}
+  #tl-head .spacer{flex:1}
+  #tl-clock{font-variant-numeric:tabular-nums;color:var(--accent);font-size:12px;
+    min-width:66px;text-align:right}
+  .tl-ev{transition:opacity .3s ease}
+  .tl-ev.faded{opacity:.12}
+  .tl-ev.lit{filter:drop-shadow(0 0 4px rgba(255,255,255,.65))}
+  @keyframes tlDotIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .tl-dot{animation:tlDotIn .4s ease both}
+  #tl-playhead{pointer-events:none}
+  #tl-playhead.hidden{display:none}
+  #tl-playhead line{stroke:var(--accent);stroke-width:1.3;stroke-dasharray:4 4;opacity:.9}
+  #tl-playhead circle{fill:var(--accent);filter:drop-shadow(0 0 7px var(--accent))}
+  #tl-playhead text{fill:var(--accent);font-size:10px;font-weight:600}
+  #tl-handle{touch-action:none}
+  /* ---- seed + archive ---- */
+  .seedwrap{display:flex;align-items:center;gap:4px;background:var(--bg2);
+    border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
+  .seedwrap input{width:86px;background:transparent;border:none;color:var(--fg);
+    outline:none;font-size:12.5px}
+  .seedwrap button{padding:4px 8px;font-size:12px;border-radius:6px;min-height:28px}
+  #seed::-webkit-outer-spin-button,#seed::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  #seed{-moz-appearance:textfield;appearance:textfield}
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(4,7,13,.66);
+    backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal.hidden{display:none}
+  .modal-card{width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;
+    background:rgba(17,23,38,.99);border:1px solid var(--line);border-radius:16px;
+    padding:16px 18px;box-shadow:0 30px 80px rgba(0,0,0,.65);
+    animation:modalIn .22s ease both}
+  @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98)}
+    to{opacity:1;transform:none}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .modal-head b{color:var(--accent)}
+  .modal-close{cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:6px}
+  .modal-close:hover{color:var(--fg);background:var(--bg2)}
+  .save-row{display:flex;gap:8px}
+  .save-row input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:8px 10px;outline:none;min-width:0}
+  .save-row input:focus{border-color:var(--accent)}
+  .archive-hint{color:var(--muted);font-size:11.5px;margin:8px 0 10px}
+  .archive-list{flex:1;overflow:auto;min-height:120px;border-top:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.06);margin:0 -4px 10px;padding:6px 4px}
+  .archive-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
+  .archive-item:hover{background:rgba(255,255,255,.04)}
+  .archive-main{flex:1;min-width:0}
+  .archive-main b{display:block;font-size:13px;font-weight:600;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .archive-main span{color:var(--muted);font-size:11px}
+  .archive-actions{display:flex;gap:6px;flex-shrink:0}
+  .archive-actions button{padding:4px 8px;font-size:12px;min-height:28px}
+  .archive-actions a{color:var(--muted);font-size:11.5px;text-decoration:none;
+    border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+  .archive-actions a:hover{color:var(--accent);border-color:var(--accent)}
+  .archive-list .empty{color:var(--muted);font-size:12.5px;padding:24px 8px;text-align:center}
+  .modal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  #archive-status{color:var(--muted);font-size:12px}
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);z-index:40;
+    background:#1b2740;border:1px solid var(--line);color:var(--fg);border-radius:10px;
+    padding:8px 14px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s ease;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:700px){
+    #bar{gap:6px;padding:6px 8px}
+    #bar .brand{max-width:42vw;font-size:13px}
+    #search{flex:1 1 130px;min-width:0}
+    .zoomwrap{padding:3px 8px}
+    #zoom{width:88px}
+    #legend{display:none}
+    #hint{display:none}
+    #panel{left:8px;right:8px;width:auto;top:calc(var(--barh,52px) + 8px);
+      max-height:52vh;z-index:19}
+    #timeline{height:46vh}
+    #tl-head .sub{display:none}
+    .seedwrap input{width:62px}
+    .modal{padding:8px}
+    .modal-card{max-height:88vh}
+  }
+
+</style>
+</head>
+<body>
+<header id="bar">
+  <div class="brand">✦ The Vela Branch</div>
+  <input id="search" placeholder="Search nodes…" autocomplete="off" />
+  <div class="seedwrap" title="输入种子后按回车重新生成；留空则随机">
+    <input id="seed" type="number" min="0" step="1" placeholder="种子" autocomplete="off" />
+    <button data-act="regenerate">生成</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="zoomwrap">
+    <button data-act="out" title="Zoom out (−)">－</button>
+    <input id="zoom" type="range" min="8" max="350" value="100" />
+    <button data-act="in" title="Zoom in (+)">＋</button>
+    <span id="zoomval">100%</span>
+  </div>
+  <button data-act="fit" title="Fit to window (F)">适应</button>
+  <button data-act="reset" title="Reset to 100% (0)">100%</button>
+  <button data-act="evolve" id="evolve-btn" title="持续自动生成新分支">动态演化</button>
+  <button data-act="timeline" id="tl-toggle">时间线</button>
+  <button data-act="collapse">折叠全部</button>
+  <button data-act="expandall">展开全部</button>
+  <button data-act="archive" id="archive-btn">存档</button>
+  <button data-act="svg">导出 SVG</button>
+</header>
+<main>
+  <svg id="map">
+    <g id="viewport">
+      <g id="links"></g>
+      <g id="nodes"></g>
+    </g>
+  </svg>
+  <aside id="panel" class="hidden"></aside>
+  <div id="legend"></div>
+  <div id="hint">点击/轻点折叠 · 拖拽/单指平移 · 双指捏合或滚轮缩放 · 双击放大 · 快捷键 + − 0 F</div>
+</main>
+<section id="timeline" class="hidden">
+  <div id="tl-handle" title="拖动调整高度"></div>
+  <div id="tl-head">
+    <b>时间线</b>
+    <button id="tl-play" title="播放时间线">▶ 播放</button>
+    <span id="tl-clock">0.00 Gyr</span>
+    <span class="spacer"></span>
+    <span class="sub">横轴：大爆炸之后的宇宙时间（Gyr）· 顶栏：大爆炸纪元（对数时间，秒）</span>
+  </div>
+  <div id="tl-body"><svg id="tl"></svg></div>
+</section>
+<div id="archive-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="archive-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <b id="archive-title">存档</b>
+      <span class="modal-close" data-archive-close="1" title="关闭">✕</span>
+    </div>
+    <div class="save-row">
+      <input id="archive-name" placeholder="存档名称（可选）" maxlength="80" autocomplete="off" />
+      <button id="archive-save">保存当前</button>
+    </div>
+    <div class="archive-hint">存档是服务器上的 JSON 文件，包含当前整棵树（含 LLM 展开的内容）。</div>
+    <div id="archive-list" class="archive-list"><div class="empty">加载中…</div></div>
+    <div class="modal-foot">
+      <span id="archive-status"></span>
+      <button id="archive-refresh">刷新</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>window.COSMOS_BOOTSTRAP = {"tree": {"id": "root", "label": "The Vela Branch", "kind": "root", "detail": "A cosmos of 7 parallel universes and 33 worlds, generated from seed 2026.", "meta": {"seed": 2026, "universes": 7, "planets": 33, "events": 184, "provider": "rule", "model": "—"}, "children": [{"id": "bigbang", "label": "Big Bang", "kind": "bigbang", "detail": "From a singularity without a before, everything that can happen begins. The first stable atoms mark the point where histories can diverge.", "meta": {"epochs": 11, "seed": 2026}, "children": [{"id": "epoch:Planck epoch", "label": "Planck epoch", "kind": "epoch", "detail": "Gravity and the other forces are one. Spacetime is a quantum foam with no stable geometry; time itself is not yet meaningful.", "meta": {"age": "1e-43 s", "age_years": 3.2e-51, "temperature": "1e+32 K"}, "children": []}, {"id": "epoch:Grand unification", "label": "Grand unification", "kind": "epoch", "detail": "Gravity decouples from the unified force. A first arrow of time appears as the young cosmos begins to cool.", "meta": {"age": "3e-42 s", "age_years": 1e-49, "temperature": "1e+29 K"}, "children": []}, {"id": "epoch:Inflation", "label": "Inflation", "kind": "epoch", "detail": "Space expands by a factor of 10^26 in a fraction of a second. Quantum fluctuations are stretched into the seeds of every galaxy that will ever exist.", "meta": {"age": "1e-36 s", "age_years": 3.2e-44, "temperature": "1e+27 K"}, "children": []}, {"id": "epoch:Electroweak epoch", "label": "Electroweak epoch", "kind": "epoch", "detail": "The strong force separates. Particles acquire mass through the Higgs field as symmetry breaks.", "meta": {"age": "5e-31 s", "age_years": 1.6e-38, "temperature": "1e+15 K"}, "children": []}, {"id": "epoch:Quark epoch", "label": "Quark epoch", "kind": "epoch", "detail": "Quarks, leptons and gluons move freely. Matter and antimatter annihilate in a faintly lopsided contest.", "meta": {"age": "4e-29 s", "age_years": 1.2e-36, "temperature": "1e+12 K"}, "children": []}, {"id": "epoch:Hadron epoch", "label": "Hadron epoch", "kind": "epoch", "detail": "Quarks bind into protons and neutrons. The surviving matter/antimatter asymmetry freezes in at roughly one baryon per billion photons.", "meta": {"age": "1e-18 s", "age_years": 3.2e-26, "temperature": "1e+10 K"}, "children": []}, {"id": "epoch:Lepton epoch", "label": "Lepton epoch", "kind": "epoch", "detail": "Neutrinos decouple and stream away. Electrons and positrons annihilate, leaving the lepton budget that will feed the first atoms.", "meta": {"age": "1e-08 s", "age_years": 3.2e-16, "temperature": "1e+09 K"}, "children": []}, {"id": "epoch:Nucleosynthesis", "label": "Nucleosynthesis", "kind": "epoch", "detail": "Primordial fusion forges hydrogen, helium and a trace of lithium. The elemental recipe of the cosmos is set within minutes.", "meta": {"age": "2e-01 s", "age_years": 5.7e-09, "temperature": "1e+08 K"}, "children": []}, {"id": "epoch:Recombination", "label": "Recombination", "kind": "epoch", "detail": "Electrons finally bind to nuclei. The fog clears, photons stream free, and the cosmic microwave background is released.", "meta": {"age": "3.3 h", "age_years": 0.00038, "temperature": "3e+03 K"}, "children": []}, {"id": "epoch:Dark ages", "label": "Dark ages", "kind": "epoch", "detail": "Neutral hydrogen fills a lightless, cooling cosmos. Gravity quietly assembles the first filaments of structure.", "meta": {"age": "3.7 d", "age_years": 0.01, "temperature": "6e+01 K"}, "children": []}, {"id": "epoch:Reionization", "label": "Reionization", "kind": "epoch", "detail": "The first stars ignite, then die, reionizing the intergalactic medium. The universe becomes visible to itself.", "meta": {"age": "182.6 d", "age_years": 0.5, "temperature": "3e+01 K"}, "children": []}]}, {"id": "uni:0001", "label": "Pyxyn", "kind": "universe", "detail": "Pyxyn is a marginal branch 0 generations from the Big Bang. Constants run wild here: gravity 1.261, strong_force 0.668, dark_energy 0.6. Given roughly 14.90 Gyr of history, it holds 5 notable worlds and expands toward a big crunch.", "meta": {"generation": 0, "destiny": "big crunch", "age": "14.9 Gyr", "age_gyr": 14.9, "habitability": 0.37, "expansion": 0.59, "worlds": 5, "gravity": 1.261, "strong_force": 0.668, "dark_energy": 0.6, "entropy": 0.977, "dimensions": 3.0}, "children": [{"id": "pln:0008", "label": "Ithyn I", "kind": "planet", "detail": "Ithyn I is a ice world orbiting at 11.679 AU with 1.091g and a mean temperature of 110 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "ice", "orbit": "11.679 AU", "gravity": "1.091 g", "temperature": "110 K", "atmosphere": "N2", "habitability": 0.31, "biosphere": "sterile", "moons": 2}, "children": [{"id": "evt:0018", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.34 Gyr", "age_gyr": 0.341, "severity": 0.75, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0017", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "0.68 Gyr", "age_gyr": 0.677, "severity": 0.92, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0019", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "1.21 Gyr", "age_gyr": 1.205, "severity": 0.77, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0020", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "10.91 Gyr", "age_gyr": 10.908, "severity": 0.5, "scope": "planet", "tags": "geology"}, "children": []}]}, {"id": "pln:0009", "label": "Rynvale II", "kind": "planet", "detail": "Rynvale II is a gas giant world orbiting at 8.319 AU with 4.18g and a mean temperature of 124 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "8.319 AU", "gravity": "4.18 g", "temperature": "124 K", "atmosphere": "H2", "habitability": 0.13, "biosphere": "sterile", "moons": 27}, "children": [{"id": "evt:0021", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "0.91 Gyr", "age_gyr": 0.907, "severity": 0.66, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0022", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "2.04 Gyr", "age_gyr": 2.043, "severity": 1.0, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0023", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "2.58 Gyr", "age_gyr": 2.584, "severity": 0.73, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0024", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "6.82 Gyr", "age_gyr": 6.815, "severity": 0.48, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0025", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "9.88 Gyr", "age_gyr": 9.881, "severity": 0.61, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "pln:0010", "label": "Tynos III", "kind": "planet", "detail": "Tynos III is a gas giant world orbiting at 3.624 AU with 4.019g and a mean temperature of 185 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "3.624 AU", "gravity": "4.019 g", "temperature": "185 K", "atmosphere": "H2", "habitability": 0.24, "biosphere": "sterile", "moons": 26}, "children": [{"id": "evt:0026", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.98 Gyr", "age_gyr": 0.982, "severity": 0.62, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0028", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "4.24 Gyr", "age_gyr": 4.239, "severity": 0.84, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0029", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "6.71 Gyr", "age_gyr": 6.706, "severity": 0.96, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0030", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "6.77 Gyr", "age_gyr": 6.766, "severity": 0.79, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0027", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "11.52 Gyr", "age_gyr": 11.524, "severity": 0.68, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0011", "label": "Cyheim IV", "kind": "planet", "detail": "Cyheim IV is a desert world orbiting at 0.926 AU with 1.457g and a mean temperature of 526 K under CO2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "desert", "orbit": "0.926 AU", "gravity": "1.457 g", "temperature": "526 K", "atmosphere": "CO2", "habitability": 0.25, "biosphere": "prebiotic", "moons": 2}, "children": [{"id": "evt:0035", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "2.59 Gyr", "age_gyr": 2.588, "severity": 0.63, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0034", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "4.57 Gyr", "age_gyr": 4.569, "severity": 0.83, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0033", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "8.17 Gyr", "age_gyr": 8.171, "severity": 0.52, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0032", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "8.23 Gyr", "age_gyr": 8.229, "severity": 0.82, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0031", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "13.12 Gyr", "age_gyr": 13.124, "severity": 0.69, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "pln:0012", "label": "Marix V", "kind": "planet", "detail": "Marix V is a ice world orbiting at 2.8 AU with 12.17g and a mean temperature of 217 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "ice", "orbit": "2.8 AU", "gravity": "12.17 g", "temperature": "217 K", "atmosphere": "N2", "habitability": 0.35, "biosphere": "prebiotic", "moons": 2}, "children": [{"id": "evt:0040", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "0.45 Gyr", "age_gyr": 0.446, "severity": 0.47, "scope": "planet", "tags": "life, exotic"}, "children": []}, {"id": "evt:0037", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "1.19 Gyr", "age_gyr": 1.194, "severity": 0.79, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0036", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.33 Gyr", "age_gyr": 1.335, "severity": 0.84, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0039", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "2.59 Gyr", "age_gyr": 2.59, "severity": 0.62, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0038", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "8.85 Gyr", "age_gyr": 8.848, "severity": 0.54, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "evt:0016", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "3.62 Gyr", "age_gyr": 3.625, "severity": 0.89, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0013", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "3.86 Gyr", "age_gyr": 3.862, "severity": 0.61, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0014", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "10.17 Gyr", "age_gyr": 10.166, "severity": 0.77, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0015", "label": "Large-scale structure collapse", "kind": "event", "detail": "A rare overdensity pulls a supercluster into a single gravitationally bound cathedral of galaxies.", "meta": {"age": "11.95 Gyr", "age_gyr": 11.951, "severity": 0.44, "scope": "universe", "tags": "structure"}, "children": []}]}, {"id": "uni:0002", "label": "Umbor", "kind": "universe", "detail": "Umbor is a marginal branch 0 generations from the Big Bang. Constants run wild here: dark_energy 0.736. It has 2 large spatial dimensions. Given roughly 11.20 Gyr of history, it holds 4 notable worlds and expands toward a heat death.", "meta": {"generation": 0, "destiny": "heat death", "age": "11.2 Gyr", "age_gyr": 11.2, "habitability": 0.45, "expansion": 0.75, "worlds": 4, "gravity": 0.824, "strong_force": 1.066, "dark_energy": 0.736, "entropy": 0.773, "dimensions": 2.0}, "children": [{"id": "pln:0041", "label": "Vaelune I", "kind": "planet", "detail": "Vaelune I is a rogue world orbiting at 5.68 AU with 0.723g and a mean temperature of 29 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "rogue", "orbit": "5.68 AU", "gravity": "0.723 g", "temperature": "29 K", "atmosphere": "H2", "habitability": 0.24, "biosphere": "sterile", "moons": 0}, "children": [{"id": "evt:0052", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.36 Gyr", "age_gyr": 0.362, "severity": 0.75, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0051", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "2.23 Gyr", "age_gyr": 2.23, "severity": 0.78, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0054", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "5.93 Gyr", "age_gyr": 5.93, "severity": 0.76, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0053", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "8.72 Gyr", "age_gyr": 8.718, "severity": 0.85, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "pln:0042", "label": "Moryn II", "kind": "planet", "detail": "Moryn II is a terrestrial world orbiting at 0.86 AU with 1.094g and a mean temperature of 324 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "terrestrial", "orbit": "0.86 AU", "gravity": "1.094 g", "temperature": "324 K", "atmosphere": "N2", "habitability": 0.59, "biosphere": "multicellular", "moons": 1}, "children": [{"id": "evt:0059", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.02 Gyr", "age_gyr": 1.025, "severity": 0.75, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0055", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "1.84 Gyr", "age_gyr": 1.836, "severity": 0.57, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0058", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "2.22 Gyr", "age_gyr": 2.217, "severity": 0.56, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0057", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "8.74 Gyr", "age_gyr": 8.739, "severity": 0.93, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0060", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "9.76 Gyr", "age_gyr": 9.755, "severity": 0.6, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0056", "label": "Great oxygenation", "kind": "event", "detail": "Photosynthesis floods the air with oxygen, poisoning much of the existing biosphere and enabling complex life.", "meta": {"age": "10.98 Gyr", "age_gyr": 10.982, "severity": 0.41, "scope": "planet", "tags": "life, atmosphere"}, "children": []}]}, {"id": "pln:0043", "label": "Tynune III", "kind": "planet", "detail": "Tynune III is a oceanic world orbiting at 0.915 AU with 1.376g and a mean temperature of 336 K under N2-rich air. Its biosphere is microbial.", "meta": {"kind": "oceanic", "orbit": "0.915 AU", "gravity": "1.376 g", "temperature": "336 K", "atmosphere": "N2", "habitability": 0.52, "biosphere": "microbial", "moons": 4}, "children": [{"id": "evt:0062", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "0.72 Gyr", "age_gyr": 0.717, "severity": 0.36, "scope": "planet", "tags": "life, exotic"}, "children": []}, {"id": "evt:0063", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "2.23 Gyr", "age_gyr": 2.228, "severity": 0.79, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0061", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "2.96 Gyr", "age_gyr": 2.961, "severity": 0.64, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0064", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "4.98 Gyr", "age_gyr": 4.979, "severity": 0.71, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "pln:0044", "label": "Oshassa IV", "kind": "planet", "detail": "Oshassa IV is a ice world orbiting at 12.637 AU with 3.56g and a mean temperature of 84 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "ice", "orbit": "12.637 AU", "gravity": "3.56 g", "temperature": "84 K", "atmosphere": "N2", "habitability": 0.15, "biosphere": "sterile", "moons": 2}, "children": [{"id": "evt:0068", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "4.15 Gyr", "age_gyr": 4.148, "severity": 0.85, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0067", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "7.28 Gyr", "age_gyr": 7.282, "severity": 0.54, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0065", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "7.73 Gyr", "age_gyr": 7.731, "severity": 0.47, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0066", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "10.80 Gyr", "age_gyr": 10.802, "severity": 0.75, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "evt:0045", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "0.96 Gyr", "age_gyr": 0.957, "severity": 0.9, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0047", "label": "Symmetry-breaking phase transition", "kind": "event", "detail": "A late phase transition changes the vacuum expectation values, nudging chemistry across the entire branch.", "meta": {"age": "2.96 Gyr", "age_gyr": 2.957, "severity": 0.61, "scope": "universe", "tags": "exotic"}, "children": []}, {"id": "evt:0048", "label": "Primordial black holes", "kind": "event", "detail": "Density peaks from the inflationary era collapse directly into black holes, populating the dark matter halo with hidden singularities.", "meta": {"age": "5.40 Gyr", "age_gyr": 5.399, "severity": 0.51, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0049", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "6.09 Gyr", "age_gyr": 6.095, "severity": 0.35, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0050", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "7.97 Gyr", "age_gyr": 7.971, "severity": 0.8, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0046", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "8.89 Gyr", "age_gyr": 8.893, "severity": 0.48, "scope": "universe", "tags": "structure"}, "children": []}]}, {"id": "uni:0003", "label": "Vexael", "kind": "universe", "detail": "Vexael is a life-friendly branch 0 generations from the Big Bang. Constants run wild here: strong_force 1.266. Given roughly 14.00 Gyr of history, it holds 6 notable worlds and expands toward a heat death.", "meta": {"generation": 0, "destiny": "heat death", "age": "14.0 Gyr", "age_gyr": 14.0, "habitability": 0.72, "expansion": 0.9, "worlds": 6, "gravity": 1.18, "strong_force": 1.266, "dark_energy": 0.96, "entropy": 1.02, "dimensions": 3.0}, "children": [{"id": "pln:0069", "label": "Zarterra I", "kind": "planet", "detail": "Zarterra I is a gas giant world orbiting at 2.203 AU with 7.603g and a mean temperature of 140 K under H2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "gas giant", "orbit": "2.203 AU", "gravity": "7.603 g", "temperature": "140 K", "atmosphere": "H2", "habitability": 0.2, "biosphere": "prebiotic", "moons": 14}, "children": [{"id": "evt:0083", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.34 Gyr", "age_gyr": 1.336, "severity": 0.71, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0085", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "3.46 Gyr", "age_gyr": 3.463, "severity": 0.53, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0082", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "12.07 Gyr", "age_gyr": 12.067, "severity": 0.84, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0084", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "13.68 Gyr", "age_gyr": 13.681, "severity": 0.64, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "pln:0070", "label": "Velos II", "kind": "planet", "detail": "Velos II is a oceanic world orbiting at 0.427 AU with 2.652g and a mean temperature of 350 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "oceanic", "orbit": "0.427 AU", "gravity": "2.652 g", "temperature": "350 K", "atmosphere": "N2", "habitability": 0.54, "biosphere": "multicellular", "moons": 1}, "children": [{"id": "evt:0090", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.36 Gyr", "age_gyr": 0.359, "severity": 0.8, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0089", "label": "Great oxygenation", "kind": "event", "detail": "Photosynthesis floods the air with oxygen, poisoning much of the existing biosphere and enabling complex life.", "meta": {"age": "1.73 Gyr", "age_gyr": 1.725, "severity": 0.46, "scope": "planet", "tags": "life, atmosphere"}, "children": []}, {"id": "evt:0087", "label": "Climate collapse", "kind": "event", "detail": "Runaway feedbacks unravel the biosphere's margin for error, forcing whatever lives here to adapt fast or vanish.", "meta": {"age": "2.68 Gyr", "age_gyr": 2.682, "severity": 1.0, "scope": "planet", "tags": "climate, life"}, "children": []}, {"id": "evt:0088", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "6.08 Gyr", "age_gyr": 6.075, "severity": 0.48, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0086", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "9.81 Gyr", "age_gyr": 9.815, "severity": 0.99, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "pln:0071", "label": "Pellis III", "kind": "planet", "detail": "Pellis III is a lava world orbiting at 1.842 AU with 1.646g and a mean temperature of 193 K under CO2-rich air. Its biosphere is microbial.", "meta": {"kind": "lava", "orbit": "1.842 AU", "gravity": "1.646 g", "temperature": "193 K", "atmosphere": "CO2", "habitability": 0.47, "biosphere": "microbial", "moons": 3}, "children": [{"id": "evt:0092", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "0.87 Gyr", "age_gyr": 0.871, "severity": 0.63, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0091", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "1.04 Gyr", "age_gyr": 1.042, "severity": 0.51, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0093", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "12.54 Gyr", "age_gyr": 12.544, "severity": 0.56, "scope": "planet", "tags": "life"}, "children": []}]}, {"id": "pln:0072", "label": "Nerora IV", "kind": "planet", "detail": "Nerora IV is a oceanic world orbiting at 0.51 AU with 1.222g and a mean temperature of 302 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "oceanic", "orbit": "0.51 AU", "gravity": "1.222 g", "temperature": "302 K", "atmosphere": "N2", "habitability": 0.84, "biosphere": "multicellular", "moons": 0}, "children": [{"id": "evt:0096", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "1.93 Gyr", "age_gyr": 1.928, "severity": 0.61, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0094", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "2.12 Gyr", "age_gyr": 2.124, "severity": 0.54, "scope": "planet", "tags": "life"}, "children": []}, {"id": "evt:0095", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "3.04 Gyr", "age_gyr": 3.038, "severity": 0.51, "scope": "planet", "tags": "orbital, exotic"}, "children": []}]}, {"id": "pln:0073", "label": "Thaleth V", "kind": "planet", "detail": "Thaleth V is a gas giant world orbiting at 1.594 AU with 5.715g and a mean temperature of 157 K under H2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "gas giant", "orbit": "1.594 AU", "gravity": "5.715 g", "temperature": "157 K", "atmosphere": "H2", "habitability": 0.23, "biosphere": "prebiotic", "moons": 18}, "children": [{"id": "evt:0098", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.98 Gyr", "age_gyr": 0.976, "severity": 0.72, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0101", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "1.43 Gyr", "age_gyr": 1.434, "severity": 0.69, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0099", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "11.61 Gyr", "age_gyr": 11.608, "severity": 0.86, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0100", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "12.99 Gyr", "age_gyr": 12.986, "severity": 0.64, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0097", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "13.36 Gyr", "age_gyr": 13.357, "severity": 0.94, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "pln:0074", "label": "Marterra VI", "kind": "planet", "detail": "Marterra VI is a lava world orbiting at 1.187 AU with 1.804g and a mean temperature of 235 K under CO2-rich air. Its biosphere is microbial.", "meta": {"kind": "lava", "orbit": "1.187 AU", "gravity": "1.804 g", "temperature": "235 K", "atmosphere": "CO2", "habitability": 0.5, "biosphere": "microbial", "moons": 4}, "children": [{"id": "evt:0105", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "6.08 Gyr", "age_gyr": 6.08, "severity": 0.49, "scope": "planet", "tags": "life"}, "children": []}, {"id": "evt:0102", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "6.17 Gyr", "age_gyr": 6.169, "severity": 0.57, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0106", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "11.23 Gyr", "age_gyr": 11.228, "severity": 0.85, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0104", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "11.79 Gyr", "age_gyr": 11.786, "severity": 0.55, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0103", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "13.45 Gyr", "age_gyr": 13.447, "severity": 0.68, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "evt:0077", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "3.35 Gyr", "age_gyr": 3.345, "severity": 0.46, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0081", "label": "Symmetry-breaking phase transition", "kind": "event", "detail": "A late phase transition changes the vacuum expectation values, nudging chemistry across the entire branch.", "meta": {"age": "3.61 Gyr", "age_gyr": 3.607, "severity": 0.49, "scope": "universe", "tags": "exotic"}, "children": []}, {"id": "evt:0075", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "3.97 Gyr", "age_gyr": 3.972, "severity": 0.3, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0076", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "7.39 Gyr", "age_gyr": 7.394, "severity": 0.57, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0080", "label": "Domain-wall turbulence", "kind": "event", "detail": "Mismatched vacuum patches collide along domain walls, injecting enormous energy into the cosmic horizon.", "meta": {"age": "10.13 Gyr", "age_gyr": 10.128, "severity": 0.55, "scope": "universe", "tags": "cataclysm, exotic"}, "children": []}, {"id": "evt:0078", "label": "Primordial black holes", "kind": "event", "detail": "Density peaks from the inflationary era collapse directly into black holes, populating the dark matter halo with hidden singularities.", "meta": {"age": "11.16 Gyr", "age_gyr": 11.165, "severity": 0.56, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0079", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "13.46 Gyr", "age_gyr": 13.459, "severity": 0.62, "scope": "universe", "tags": "structure, exotic"}, "children": []}]}, {"id": "uni:0004", "label": "Quenael", "kind": "universe", "detail": "Quenael is a marginal branch 0 generations from the Big Bang. Constants run wild here: strong_force 1.489. It has 4 large spatial dimensions. Given roughly 15.30 Gyr of history, it holds 3 notable worlds and expands toward a eternal stagnation.", "meta": {"generation": 0, "destiny": "eternal stagnation", "age": "15.3 Gyr", "age_gyr": 15.3, "habitability": 0.37, "expansion": 1.0, "worlds": 3, "gravity": 1.193, "strong_force": 1.489, "dark_energy": 0.936, "entropy": 0.759, "dimensions": 4.0}, "children": [{"id": "pln:0107", "label": "Kessassa I", "kind": "planet", "detail": "Kessassa I is a lava world orbiting at 0.836 AU with 0.223g and a mean temperature of 334 K under CO2-rich air. Its biosphere is microbial.", "meta": {"kind": "lava", "orbit": "0.836 AU", "gravity": "0.223 g", "temperature": "334 K", "atmosphere": "CO2", "habitability": 0.39, "biosphere": "microbial", "moons": 3}, "children": [{"id": "evt:0115", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.39 Gyr", "age_gyr": 1.392, "severity": 0.73, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0117", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "6.71 Gyr", "age_gyr": 6.708, "severity": 0.84, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0116", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "13.09 Gyr", "age_gyr": 13.089, "severity": 0.73, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "pln:0108", "label": "Pellheim II", "kind": "planet", "detail": "Pellheim II is a desert world orbiting at 0.564 AU with 4.09g and a mean temperature of 366 K under CO2-rich air. Its biosphere is sterile.", "meta": {"kind": "desert", "orbit": "0.564 AU", "gravity": "4.09 g", "temperature": "366 K", "atmosphere": "CO2", "habitability": 0.33, "biosphere": "sterile", "moons": 3}, "children": [{"id": "evt:0119", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.44 Gyr", "age_gyr": 0.437, "severity": 0.68, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0120", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "0.89 Gyr", "age_gyr": 0.891, "severity": 0.92, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0118", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "7.03 Gyr", "age_gyr": 7.025, "severity": 0.63, "scope": "planet", "tags": "geology"}, "children": []}]}, {"id": "pln:0109", "label": "Kessis III", "kind": "planet", "detail": "Kessis III is a ice world orbiting at 2.193 AU with 4.842g and a mean temperature of 134 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "ice", "orbit": "2.193 AU", "gravity": "4.842 g", "temperature": "134 K", "atmosphere": "N2", "habitability": 0.22, "biosphere": "sterile", "moons": 2}, "children": [{"id": "evt:0122", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "0.65 Gyr", "age_gyr": 0.653, "severity": 0.91, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0121", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.94 Gyr", "age_gyr": 0.941, "severity": 0.76, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0124", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "13.00 Gyr", "age_gyr": 12.998, "severity": 0.57, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0123", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "13.04 Gyr", "age_gyr": 13.039, "severity": 0.62, "scope": "planet", "tags": "atmosphere"}, "children": []}]}, {"id": "evt:0114", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "1.15 Gyr", "age_gyr": 1.153, "severity": 0.62, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0110", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "1.47 Gyr", "age_gyr": 1.468, "severity": 0.6, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0111", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "4.71 Gyr", "age_gyr": 4.711, "severity": 0.54, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0113", "label": "Domain-wall turbulence", "kind": "event", "detail": "Mismatched vacuum patches collide along domain walls, injecting enormous energy into the cosmic horizon.", "meta": {"age": "11.05 Gyr", "age_gyr": 11.055, "severity": 0.59, "scope": "universe", "tags": "cataclysm, exotic"}, "children": []}, {"id": "evt:0112", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "15.17 Gyr", "age_gyr": 15.17, "severity": 0.7, "scope": "universe", "tags": "expansion"}, "children": []}]}, {"id": "uni:0005", "label": "Zanum", "kind": "universe", "detail": "Zanum is a marginal branch 0 generations from the Big Bang. Constants run wild here: strong_force 0.707, entropy 0.559. Given roughly 16.90 Gyr of history, it holds 6 notable worlds and expands toward a heat death.", "meta": {"generation": 0, "destiny": "heat death", "age": "16.9 Gyr", "age_gyr": 16.9, "habitability": 0.59, "expansion": 1.07, "worlds": 6, "gravity": 0.944, "strong_force": 0.707, "dark_energy": 1.134, "entropy": 0.559, "dimensions": 3.0}, "children": [{"id": "pln:0125", "label": "Cyheim I", "kind": "planet", "detail": "Cyheim I is a terrestrial world orbiting at 0.454 AU with 0.982g and a mean temperature of 587 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "terrestrial", "orbit": "0.454 AU", "gravity": "0.982 g", "temperature": "587 K", "atmosphere": "N2", "habitability": 0.39, "biosphere": "prebiotic", "moons": 2}, "children": [{"id": "evt:0141", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "2.27 Gyr", "age_gyr": 2.271, "severity": 0.81, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0139", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "3.85 Gyr", "age_gyr": 3.847, "severity": 0.48, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0140", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "4.12 Gyr", "age_gyr": 4.12, "severity": 0.77, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0137", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "7.90 Gyr", "age_gyr": 7.899, "severity": 0.91, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0138", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "9.52 Gyr", "age_gyr": 9.519, "severity": 0.85, "scope": "planet", "tags": "radiation"}, "children": []}]}, {"id": "pln:0126", "label": "Vaelune II", "kind": "planet", "detail": "Vaelune II is a oceanic world orbiting at 1.35 AU with 2.388g and a mean temperature of 345 K under N2-rich air. Its biosphere is microbial.", "meta": {"kind": "oceanic", "orbit": "1.35 AU", "gravity": "2.388 g", "temperature": "345 K", "atmosphere": "N2", "habitability": 0.49, "biosphere": "microbial", "moons": 2}, "children": [{"id": "evt:0145", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "2.09 Gyr", "age_gyr": 2.086, "severity": 0.32, "scope": "planet", "tags": "life, exotic"}, "children": []}, {"id": "evt:0144", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "3.71 Gyr", "age_gyr": 3.713, "severity": 0.44, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0147", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "5.11 Gyr", "age_gyr": 5.106, "severity": 0.61, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0146", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "6.69 Gyr", "age_gyr": 6.69, "severity": 0.6, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0143", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "13.13 Gyr", "age_gyr": 13.13, "severity": 0.9, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0142", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "13.66 Gyr", "age_gyr": 13.659, "severity": 0.88, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "pln:0127", "label": "Dalix III", "kind": "planet", "detail": "Dalix III is a ice world orbiting at 3.766 AU with 2.806g and a mean temperature of 186 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "ice", "orbit": "3.766 AU", "gravity": "2.806 g", "temperature": "186 K", "atmosphere": "N2", "habitability": 0.32, "biosphere": "prebiotic", "moons": 3}, "children": [{"id": "evt:0149", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.13 Gyr", "age_gyr": 0.134, "severity": 0.6, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0148", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "3.27 Gyr", "age_gyr": 3.269, "severity": 0.72, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0151", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "9.32 Gyr", "age_gyr": 9.317, "severity": 0.83, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0150", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "9.72 Gyr", "age_gyr": 9.72, "severity": 0.67, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0128", "label": "Gorar IV", "kind": "planet", "detail": "Gorar IV is a desert world orbiting at 0.456 AU with 1.173g and a mean temperature of 625 K under CO2-rich air. Its biosphere is microbial.", "meta": {"kind": "desert", "orbit": "0.456 AU", "gravity": "1.173 g", "temperature": "625 K", "atmosphere": "CO2", "habitability": 0.35, "biosphere": "microbial", "moons": 1}, "children": [{"id": "evt:0156", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "0.33 Gyr", "age_gyr": 0.332, "severity": 0.58, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0155", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "0.36 Gyr", "age_gyr": 0.36, "severity": 0.59, "scope": "planet", "tags": "life"}, "children": []}, {"id": "evt:0152", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "6.83 Gyr", "age_gyr": 6.834, "severity": 0.56, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0153", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "7.67 Gyr", "age_gyr": 7.671, "severity": 0.78, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0154", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "10.14 Gyr", "age_gyr": 10.142, "severity": 0.46, "scope": "planet", "tags": "orbital, exotic"}, "children": []}]}, {"id": "pln:0129", "label": "Ithassa V", "kind": "planet", "detail": "Ithassa V is a gas giant world orbiting at 9.739 AU with 2.567g and a mean temperature of 109 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "9.739 AU", "gravity": "2.567 g", "temperature": "109 K", "atmosphere": "H2", "habitability": 0.15, "biosphere": "sterile", "moons": 11}, "children": [{"id": "evt:0158", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.58 Gyr", "age_gyr": 0.584, "severity": 0.78, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0160", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "7.08 Gyr", "age_gyr": 7.08, "severity": 0.62, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0159", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "8.50 Gyr", "age_gyr": 8.497, "severity": 0.44, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0157", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "13.63 Gyr", "age_gyr": 13.63, "severity": 0.98, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0130", "label": "Vaelterra VI", "kind": "planet", "detail": "Vaelterra VI is a terrestrial world orbiting at 2.968 AU with 1.098g and a mean temperature of 216 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "terrestrial", "orbit": "2.968 AU", "gravity": "1.098 g", "temperature": "216 K", "atmosphere": "N2", "habitability": 0.67, "biosphere": "multicellular", "moons": 4}, "children": [{"id": "evt:0162", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.23 Gyr", "age_gyr": 0.225, "severity": 0.58, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0165", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "3.58 Gyr", "age_gyr": 3.583, "severity": 0.58, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0164", "label": "Great oxygenation", "kind": "event", "detail": "Photosynthesis floods the air with oxygen, poisoning much of the existing biosphere and enabling complex life.", "meta": {"age": "10.46 Gyr", "age_gyr": 10.457, "severity": 0.5, "scope": "planet", "tags": "life, atmosphere"}, "children": []}, {"id": "evt:0163", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "12.98 Gyr", "age_gyr": 12.985, "severity": 0.74, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0161", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "13.77 Gyr", "age_gyr": 13.77, "severity": 0.56, "scope": "planet", "tags": "geology"}, "children": []}]}, {"id": "evt:0133", "label": "Large-scale structure collapse", "kind": "event", "detail": "A rare overdensity pulls a supercluster into a single gravitationally bound cathedral of galaxies.", "meta": {"age": "0.67 Gyr", "age_gyr": 0.666, "severity": 0.5, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0132", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "6.50 Gyr", "age_gyr": 6.5, "severity": 0.62, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0134", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "11.15 Gyr", "age_gyr": 11.154, "severity": 0.55, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0131", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "13.08 Gyr", "age_gyr": 13.084, "severity": 0.49, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0136", "label": "Domain-wall turbulence", "kind": "event", "detail": "Mismatched vacuum patches collide along domain walls, injecting enormous energy into the cosmic horizon.", "meta": {"age": "14.02 Gyr", "age_gyr": 14.018, "severity": 0.62, "scope": "universe", "tags": "cataclysm, exotic"}, "children": []}, {"id": "evt:0135", "label": "Primordial black holes", "kind": "event", "detail": "Density peaks from the inflationary era collapse directly into black holes, populating the dark matter halo with hidden singularities.", "meta": {"age": "14.24 Gyr", "age_gyr": 14.239, "severity": 0.49, "scope": "universe", "tags": "structure"}, "children": []}]}, {"id": "uni:0006", "label": "Solune-Zeta", "kind": "universe", "detail": "Solune-Zeta is a marginal branch 1 generation from the Big Bang. Constants run wild here: strong_force 1.529, entropy 0.703. It has 4 large spatial dimensions. Given roughly 11.60 Gyr of history, it holds 4 notable worlds and expands toward a heat death.", "meta": {"generation": 1, "destiny": "heat death", "age": "11.6 Gyr", "age_gyr": 11.6, "habitability": 0.39, "expansion": 0.88, "worlds": 4, "gravity": 1.099, "strong_force": 1.529, "dark_energy": 0.94, "entropy": 0.703, "dimensions": 4.0}, "children": [{"id": "pln:0166", "label": "Morora I", "kind": "planet", "detail": "Morora I is a oceanic world orbiting at 0.636 AU with 2.427g and a mean temperature of 360 K under N2-rich air. Its biosphere is microbial.", "meta": {"kind": "oceanic", "orbit": "0.636 AU", "gravity": "2.427 g", "temperature": "360 K", "atmosphere": "N2", "habitability": 0.38, "biosphere": "microbial", "moons": 2}, "children": [{"id": "evt:0175", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "4.37 Gyr", "age_gyr": 4.368, "severity": 0.52, "scope": "planet", "tags": "life"}, "children": []}, {"id": "evt:0176", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "6.43 Gyr", "age_gyr": 6.428, "severity": 0.94, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0178", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "7.47 Gyr", "age_gyr": 7.472, "severity": 0.82, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0179", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "7.66 Gyr", "age_gyr": 7.664, "severity": 0.66, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0177", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "8.96 Gyr", "age_gyr": 8.956, "severity": 1.0, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "pln:0167", "label": "Marora II", "kind": "planet", "detail": "Marora II is a gas giant world orbiting at 5.13 AU with 0.864g and a mean temperature of 113 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "5.13 AU", "gravity": "0.864 g", "temperature": "113 K", "atmosphere": "H2", "habitability": 0.29, "biosphere": "sterile", "moons": 2}, "children": [{"id": "evt:0180", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.01 Gyr", "age_gyr": 1.008, "severity": 0.66, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0181", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "3.73 Gyr", "age_gyr": 3.733, "severity": 0.7, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0183", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "7.14 Gyr", "age_gyr": 7.137, "severity": 0.46, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0182", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "7.89 Gyr", "age_gyr": 7.893, "severity": 0.65, "scope": "planet", "tags": "geology"}, "children": []}]}, {"id": "pln:0168", "label": "Morassa III", "kind": "planet", "detail": "Morassa III is a gas giant world orbiting at 5.768 AU with 1.015g and a mean temperature of 119 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "5.768 AU", "gravity": "1.015 g", "temperature": "119 K", "atmosphere": "H2", "habitability": 0.24, "biosphere": "sterile", "moons": 21}, "children": [{"id": "evt:0184", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.15 Gyr", "age_gyr": 0.147, "severity": 0.7, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0185", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "0.49 Gyr", "age_gyr": 0.489, "severity": 0.53, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0187", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "3.40 Gyr", "age_gyr": 3.403, "severity": 0.87, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0186", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "4.20 Gyr", "age_gyr": 4.202, "severity": 1.0, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0188", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "6.02 Gyr", "age_gyr": 6.022, "severity": 0.7, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "pln:0169", "label": "Gormund IV", "kind": "planet", "detail": "Gormund IV is a desert world orbiting at 0.528 AU with 1.31g and a mean temperature of 487 K under CO2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "desert", "orbit": "0.528 AU", "gravity": "1.31 g", "temperature": "487 K", "atmosphere": "CO2", "habitability": 0.29, "biosphere": "prebiotic", "moons": 3}, "children": [{"id": "evt:0190", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.56 Gyr", "age_gyr": 0.561, "severity": 0.69, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0191", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "2.10 Gyr", "age_gyr": 2.101, "severity": 0.38, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0189", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "3.97 Gyr", "age_gyr": 3.97, "severity": 0.67, "scope": "planet", "tags": "impact"}, "children": []}]}, {"id": "evt:0174", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "2.08 Gyr", "age_gyr": 2.077, "severity": 0.94, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0171", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "3.60 Gyr", "age_gyr": 3.599, "severity": 0.48, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0172", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "7.33 Gyr", "age_gyr": 7.329, "severity": 0.47, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0173", "label": "Large-scale structure collapse", "kind": "event", "detail": "A rare overdensity pulls a supercluster into a single gravitationally bound cathedral of galaxies.", "meta": {"age": "7.63 Gyr", "age_gyr": 7.631, "severity": 0.6, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0170", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "10.24 Gyr", "age_gyr": 10.24, "severity": 0.8, "scope": "universe", "tags": "radiation"}, "children": []}]}, {"id": "uni:0007", "label": "Moreth-Eta", "kind": "universe", "detail": "Moreth-Eta is a marginal branch 1 generation from the Big Bang. Constants run wild here: strong_force 0.623, entropy 0.402. Given roughly 12.20 Gyr of history, it holds 5 notable worlds and expands toward a heat death.", "meta": {"generation": 1, "destiny": "heat death", "age": "12.2 Gyr", "age_gyr": 12.2, "habitability": 0.53, "expansion": 1.0, "worlds": 5, "gravity": 0.872, "strong_force": 0.623, "dark_energy": 1.029, "entropy": 0.402, "dimensions": 3.0}, "children": [{"id": "pln:0192", "label": "Belora I", "kind": "planet", "detail": "Belora I is a desert world orbiting at 0.359 AU with 1.343g and a mean temperature of 746 K under CO2-rich air. Its biosphere is sterile.", "meta": {"kind": "desert", "orbit": "0.359 AU", "gravity": "1.343 g", "temperature": "746 K", "atmosphere": "CO2", "habitability": 0.28, "biosphere": "sterile", "moons": 3}, "children": [{"id": "evt:0207", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.03 Gyr", "age_gyr": 1.03, "severity": 0.56, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0208", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "1.61 Gyr", "age_gyr": 1.614, "severity": 0.9, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0206", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "3.56 Gyr", "age_gyr": 3.562, "severity": 0.72, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0204", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "4.62 Gyr", "age_gyr": 4.625, "severity": 0.81, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0205", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "9.41 Gyr", "age_gyr": 9.409, "severity": 0.46, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0209", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "11.20 Gyr", "age_gyr": 11.2, "severity": 0.68, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "pln:0193", "label": "Dalyn II", "kind": "planet", "detail": "Dalyn II is a desert world orbiting at 1.752 AU with 0.73g and a mean temperature of 312 K under CO2-rich air. Its biosphere is multicellular.", "meta": {"kind": "desert", "orbit": "1.752 AU", "gravity": "0.73 g", "temperature": "312 K", "atmosphere": "CO2", "habitability": 0.64, "biosphere": "multicellular", "moons": 0}, "children": [{"id": "evt:0210", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "0.19 Gyr", "age_gyr": 0.189, "severity": 0.46, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0213", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "1.03 Gyr", "age_gyr": 1.026, "severity": 0.71, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0212", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "1.36 Gyr", "age_gyr": 1.358, "severity": 0.45, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0211", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "6.54 Gyr", "age_gyr": 6.538, "severity": 0.65, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0214", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "7.67 Gyr", "age_gyr": 7.669, "severity": 0.71, "scope": "planet", "tags": "geology"}, "children": []}]}, {"id": "pln:0194", "label": "Kessmund III", "kind": "planet", "detail": "Kessmund III is a lava world orbiting at 0.729 AU with 0.472g and a mean temperature of 506 K under CO2-rich air. Its biosphere is sterile.", "meta": {"kind": "lava", "orbit": "0.729 AU", "gravity": "0.472 g", "temperature": "506 K", "atmosphere": "CO2", "habitability": 0.25, "biosphere": "sterile", "moons": 0}, "children": [{"id": "evt:0215", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.79 Gyr", "age_gyr": 0.788, "severity": 0.7, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0217", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "1.27 Gyr", "age_gyr": 1.27, "severity": 0.69, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0218", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "10.72 Gyr", "age_gyr": 10.718, "severity": 0.78, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0216", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "11.93 Gyr", "age_gyr": 11.929, "severity": 0.84, "scope": "planet", "tags": "radiation"}, "children": []}]}, {"id": "pln:0195", "label": "Syrar IV", "kind": "planet", "detail": "Syrar IV is a lava world orbiting at 0.64 AU with 2.249g and a mean temperature of 570 K under CO2-rich air. Its biosphere is sterile.", "meta": {"kind": "lava", "orbit": "0.64 AU", "gravity": "2.249 g", "temperature": "570 K", "atmosphere": "CO2", "habitability": 0.17, "biosphere": "sterile", "moons": 4}, "children": [{"id": "evt:0219", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.02 Gyr", "age_gyr": 1.023, "severity": 0.87, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0220", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "4.05 Gyr", "age_gyr": 4.049, "severity": 0.7, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0221", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "4.60 Gyr", "age_gyr": 4.603, "severity": 0.81, "scope": "planet", "tags": "radiation"}, "children": []}]}, {"id": "pln:0196", "label": "Syrwei V", "kind": "planet", "detail": "Syrwei V is a lava world orbiting at 0.341 AU with 0.299g and a mean temperature of 712 K under CO2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "lava", "orbit": "0.341 AU", "gravity": "0.299 g", "temperature": "712 K", "atmosphere": "CO2", "habitability": 0.22, "biosphere": "prebiotic", "moons": 4}, "children": [{"id": "evt:0224", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "5.97 Gyr", "age_gyr": 5.971, "severity": 0.77, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0222", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "11.51 Gyr", "age_gyr": 11.505, "severity": 0.52, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0223", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "11.79 Gyr", "age_gyr": 11.793, "severity": 0.62, "scope": "planet", "tags": "atmosphere"}, "children": []}]}, {"id": "evt:0201", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "2.03 Gyr", "age_gyr": 2.032, "severity": 0.31, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0199", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "3.87 Gyr", "age_gyr": 3.872, "severity": 0.57, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0200", "label": "Large-scale structure collapse", "kind": "event", "detail": "A rare overdensity pulls a supercluster into a single gravitationally bound cathedral of galaxies.", "meta": {"age": "5.19 Gyr", "age_gyr": 5.194, "severity": 0.46, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0198", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "6.13 Gyr", "age_gyr": 6.133, "severity": 0.64, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0197", "label": "Primordial black holes", "kind": "event", "detail": "Density peaks from the inflationary era collapse directly into black holes, populating the dark matter halo with hidden singularities.", "meta": {"age": "6.68 Gyr", "age_gyr": 6.684, "severity": 0.6, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0202", "label": "Domain-wall turbulence", "kind": "event", "detail": "Mismatched vacuum patches collide along domain walls, injecting enormous energy into the cosmic horizon.", "meta": {"age": "8.71 Gyr", "age_gyr": 8.706, "severity": 0.75, "scope": "universe", "tags": "cataclysm, exotic"}, "children": []}, {"id": "evt:0203", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "9.53 Gyr", "age_gyr": 9.532, "severity": 0.93, "scope": "universe", "tags": "expansion"}, "children": []}]}]}, "title": "The Vela Branch", "live": false};</script>
+<script>
+"use strict";
+let DATA = null, LIVE = false, TITLE = "Cosmos", PROVIDER = null;
+const API_BASE = (window.COSMOS_API_BASE || "").replace(/\/$/, "");
+
+const KIND_COLORS = {
+  root:"#f5c451", bigbang:"#ff8a3d", epoch:"#d9b64a",
+  universe:"#5b8def", planet:"#3fbf7f", event:"#c678dd"
+};
+const KIND_LABEL = {
+  root:"Cosmos", bigbang:"Origin", epoch:"Epoch",
+  universe:"Universe", planet:"Planet", event:"Event"
+};
+const CAN_EXPAND = {root:1, bigbang:1, universe:1, planet:1, event:1, epoch:0};
+const ROW = 38, GAP = 62, MINW = 150, PADX = 16, CHAR = 7.7, NODEH = 26;
+const SEC_PER_YEAR = 31557600;
+
+const svg = document.getElementById("map");
+const viewport = document.getElementById("viewport");
+const linksG = document.getElementById("links");
+const nodesG = document.getElementById("nodes");
+const panel = document.getElementById("panel");
+const searchBox = document.getElementById("search");
+const zoomSlider = document.getElementById("zoom");
+const zoomVal = document.getElementById("zoomval");
+const tl = document.getElementById("timeline");
+const tlBody = document.getElementById("tl-body");
+const tlSvg = document.getElementById("tl");
+const toast = document.getElementById("toast");
+const seedInput = document.getElementById("seed");
+const archiveModal = document.getElementById("archive-modal");
+const archiveName = document.getElementById("archive-name");
+const archiveList = document.getElementById("archive-list");
+const archiveStatus = document.getElementById("archive-status");
+
+let collapsed = new Set();
+let query = "";
+let scale = 1, tx = 40, ty = 40;
+let bounds = { w: 1200, h: 800 };
+let byId = new Map();
+let parentIndex = new Map();
+let selectedId = null;
+let knownIds = new Set();
+let freshIds = new Set();
+let smoothTimer = 0;
+let busy = null;
+let lastTap = { t: 0, x: 0, y: 0 };
+let evolving = false, evolveTimer = 0, evolveBusy = false, evolveCount = 0;
+const tlPlay = { active:false, raf:0, t:0, maxAge:1, x:null, top:0, bottom:0,
+                 dots:[], bars:[], head:null, clock:null };
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+/* ------------------------------------------------------------------ */
+function sevColor(sev){
+  const s = Math.max(0, Math.min(1, Number(sev) || 0.5));
+  return `hsl(${285 - 15 * s}, 62%, ${62 - 12 * s}%)`;
+}
+function nodeColor(n){
+  if (n.kind === "event") return sevColor((n.meta && n.meta.severity) || 0.5);
+  return KIND_COLORS[n.kind] || "#9aa4bb";
+}
+function labelText(n){
+  const icon = { root:"✦", bigbang:"✷", epoch:"·", universe:"◆", planet:"●", event:"▲" }[n.kind] || "•";
+  return icon + "  " + n.label;
+}
+function nodeWidth(n){ return Math.max(MINW, labelText(n).length * CHAR + PADX * 2 + 6); }
+function escapeHtml(s){
+  return String(s == null ? "" : s).replace(/[&<>"]/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+}
+function pathD(x1, y1, x2, y2){
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
+function walkAll(node, depth, fn){
+  fn(node, depth);
+  (node.children || []).forEach(c => walkAll(c, depth + 1, fn));
+}
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+function syncChrome(){
+  const bar = document.getElementById("bar");
+  if (bar) document.documentElement.style.setProperty("--barh", bar.offsetHeight + "px");
+}
+window.addEventListener("resize", syncChrome);
+
+/* ------------------------------------------------------------------ */
+/* mind map                                                            */
+/* ------------------------------------------------------------------ */
+function computeLayout(){
+  const vis = [];
+  let cursor = 0;
+  const depthWidth = {};
+  let maxDepth = 0;
+  byId = new Map();
+
+  function visit(node, depth){
+    node._depth = depth;
+    node._w = nodeWidth(node);
+    byId.set(node.id, node);
+    depthWidth[depth] = Math.max(depthWidth[depth] || 0, node._w);
+    maxDepth = Math.max(maxDepth, depth);
+    const folded = collapsed.has(node.id);
+    const kids = (!folded && node.children && node.children.length) ? node.children : [];
+    node._kids = kids;
+    vis.push(node);
+    if (!kids.length){ node._y = cursor; cursor += ROW; }
+    else {
+      kids.forEach(k => visit(k, depth + 1));
+      node._y = (kids[0]._y + kids[kids.length - 1]._y) / 2;
+    }
+  }
+  visit(DATA, 0);
+
+  const offset = [];
+  let x = 0;
+  for (let d = 0; d <= maxDepth; d++){ offset[d] = x; x += (depthWidth[d] || MINW) + GAP; }
+  vis.forEach(n => { n._x = offset[n._depth]; });
+  bounds = { w: Math.max(x - GAP, 400), h: Math.max(cursor, 200) };
+  return vis;
+}
+
+function render(){
+  parentIndex = new Map();
+  walkAll(DATA, 0, n => (n.children || []).forEach(c => parentIndex.set(c.id, n.id)));
+
+  const vis = computeLayout();
+  const q = query.trim().toLowerCase();
+  const hits = new Set();
+  if (q){
+    vis.forEach(n => {
+      if ((n.label + " " + (n.detail || "")).toLowerCase().indexOf(q) >= 0) hits.add(n.id);
+    });
+  }
+  const prev = knownIds;
+  const linkParts = [], nodeParts = [];
+  freshIds = new Set();
+  let enterIndex = 0;
+  vis.forEach(n => {
+    const dim = q && !hits.has(n.id) ? " dim" : "";
+    const hit = hits.has(n.id) ? " hit" : "";
+    const isNew = !prev.has(n.id);
+    if (isNew) freshIds.add(n.id);
+    const delay = isNew ? Math.min(enterIndex++ * 34, 260) : 0;
+    const enter = isNew ? " enter" : "";
+    (n._kids || []).forEach(k => {
+      const isNewLink = !prev.has(k.id);
+      linkParts.push(`<path class="link${isNewLink ? " enter" : ""}" data-parent="${escapeHtml(n.id)}" data-child="${escapeHtml(k.id)}" d="${pathD(n._x + n._w, n._y, k._x, k._y)}" stroke="${nodeColor(k)}" stroke-opacity="0.55" pathLength="1"${isNewLink ? ` style="--d:${delay}ms"` : ""}/>`);
+    });
+    const color = nodeColor(n);
+    const textColor = (n.kind === "root" || n.kind === "bigbang") ? "#0b0f19" : "#08111f";
+    nodeParts.push(
+      `<g class="node${dim}${hit}${enter}" data-id="${escapeHtml(n.id)}" transform="translate(${n._x},${n._y})"${isNew ? ` style="--d:${delay}ms"` : ""}>` +
+      `<rect x="0" y="${-NODEH/2}" width="${n._w}" height="${NODEH}" rx="9" fill="${color}"/>` +
+      `<text x="${PADX}" y="1" fill="${textColor}">${escapeHtml(labelText(n))}</text>` +
+      `</g>`
+    );
+  });
+  linksG.innerHTML = linkParts.join("");
+  nodesG.innerHTML = nodeParts.join("");
+  knownIds = new Set(vis.map(n => n.id));
+  applyTransform();
+  syncZoomUI();
+  if (!tl.classList.contains("hidden")) renderTimeline();
+}
+
+function applyTransform(smoothMotion){
+  if (smoothMotion){
+    viewport.classList.add("smooth");
+    clearTimeout(smoothTimer);
+    smoothTimer = setTimeout(() => viewport.classList.remove("smooth"), 470);
+  }
+  viewport.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
+}
+function stopSmooth(){
+  viewport.classList.remove("smooth");
+  clearTimeout(smoothTimer);
+}
+function syncZoomUI(){
+  zoomSlider.value = Math.round(scale * 100);
+  zoomVal.textContent = Math.round(scale * 100) + "%";
+}
+function visibleCenter(){
+  const rect = svg.getBoundingClientRect();
+  const panelH = tl.classList.contains("hidden") ? 0 : tl.offsetHeight;
+  return { cx: rect.width / 2, cy: Math.max(60, (rect.height - panelH) / 2) };
+}
+function setScale(next, cx, cy, animate){
+  next = Math.min(3.5, Math.max(0.08, next));
+  if (cx == null){ const c = visibleCenter(); cx = c.cx; cy = c.cy; }
+  tx = cx - (cx - tx) * (next / scale);
+  ty = cy - (cy - ty) * (next / scale);
+  scale = next;
+  applyTransform(!!animate); syncZoomUI();
+}
+function fit(animate){
+  const c = visibleCenter();
+  const s = Math.min((svg.getBoundingClientRect().width - 90) / bounds.w,
+                     (c.cy * 2 - 60) / bounds.h, 1.6);
+  scale = Math.max(0.08, s);
+  tx = Math.max(20, (svg.getBoundingClientRect().width - bounds.w * scale) / 2);
+  ty = Math.max(20, c.cy - bounds.h * scale / 2);
+  applyTransform(animate !== false); syncZoomUI();
+}
+function resetZoom(){
+  scale = 1;
+  const c = visibleCenter();
+  tx = 40; ty = Math.max(20, c.cy - bounds.h / 2);
+  applyTransform(true); syncZoomUI();
+}
+function centerOnNode(id, animate){
+  const node = byId.get(id);
+  if (!node) return;
+  const c = visibleCenter();
+  tx = c.cx - (node._x + node._w / 2) * scale;
+  ty = c.cy - node._y * scale;
+  applyTransform(!!animate);
+}
+function flashNode(id){
+  let el = null;
+  try { el = document.querySelector(`g.node[data-id="${CSS.escape(id)}"]`); }
+  catch (_) { el = document.querySelector(`g.node[data-id="${String(id).replace(/"/g, '\\"')}"]`); }
+  if (!el) return;
+  el.classList.add("hit");
+  clearTimeout(flashNode._t);
+  flashNode._t = setTimeout(() => el.classList.remove("hit"), 700);
+}
+function highlightChain(id){
+  const chain = new Set(), links = new Set();
+  let cur = id;
+  while (cur){
+    chain.add(cur);
+    const parent = parentIndex.get(cur);
+    if (!parent) break;
+    links.add(parent + ">" + cur);
+    cur = parent;
+  }
+  document.querySelectorAll("g.node").forEach(el =>
+    el.classList.toggle("active", chain.has(el.getAttribute("data-id"))));
+  document.querySelectorAll("path.link").forEach(el =>
+    el.classList.toggle("active",
+      links.has(el.getAttribute("data-parent") + ">" + el.getAttribute("data-child"))));
+}
+function clearHighlight(){
+  document.querySelectorAll("g.node.active, path.link.active")
+    .forEach(el => el.classList.remove("active"));
+}
+function revealNode(id){
+  let cur = id;
+  const path = [];
+  while (cur){ path.push(cur); cur = parentIndex.get(cur); }
+  path.forEach(p => collapsed.delete(p));
+  render();
+  const node = byId.get(id);
+  if (!node) return;
+  centerOnNode(id, true);
+  clearHighlight(); highlightChain(id);
+  selectedId = id;
+  showPanel(node);
+}
+function findParentId(id){ return parentIndex.get(id); }
+
+/* ------------------------------------------------------------------ */
+/* details panel                                                       */
+/* ------------------------------------------------------------------ */
+function setStatus(msg, working){
+  const stat = document.getElementById("pstat");
+  if (!stat) return;
+  stat.innerHTML = escapeHtml(msg) +
+    (working ? ' <span class="dot"></span><span class="dot"></span><span class="dot"></span>' : "");
+}
+function showPanel(node){
+  if (!node) return;
+  selectedId = node.id;
+  const rows = Object.keys(node.meta || {}).map(k =>
+    `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(node.meta[k])}</td></tr>`).join("");
+  const working = !!(LIVE && busy && busy.id === node.id);
+  let actions = "";
+  if (LIVE){
+    const canExpand = CAN_EXPAND[node.kind] !== 0;
+    actions = `<div class="actions">
+      <button data-pact="expand" data-id="${escapeHtml(node.id)}" ${canExpand && !working ? "" : "disabled"}>✨ 展开子节点</button>
+      <button data-pact="continue" data-id="${escapeHtml(node.id)}" ${working ? "disabled" : ""}>✍ 续写叙事</button>
+    </div><div class="status" id="pstat">` +
+      (working ? escapeHtml(busy.status) +
+        ' <span class="dot"></span><span class="dot"></span><span class="dot"></span>' : "") +
+      `</div>`;
+  }
+  panel.innerHTML =
+    `<span class="close" data-close="1">✕</span>` +
+    `<div class="kind">${escapeHtml(KIND_LABEL[node.kind] || node.kind)}</div>` +
+    `<h2 style="color:${nodeColor(node)}">${escapeHtml(node.label)}</h2>` +
+    `<p id="pdetail">${escapeHtml(node.detail || "")}</p>` +
+    (rows ? `<table>${rows}</table>` : "") + actions;
+  panel.classList.remove("hidden");
+}
+function parseSse(block){
+  let event = "message", data = "";
+  block.split("\n").forEach(line => {
+    if (line.indexOf("event:") === 0) event = line.slice(6).trim();
+    else if (line.indexOf("data:") === 0) data += line.slice(5).trim();
+  });
+  let parsed = {};
+  try { parsed = JSON.parse(data || "{}"); } catch (_) { parsed = {}; }
+  return { event: event, data: parsed };
+}
+async function consumeStream(res, id, node, base){
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let delta = "";
+  const applyDelta = () => {
+    node.detail = base ? base + "\n\n" + delta : delta;
+    const p = document.getElementById("pdetail");
+    if (p){ p.textContent = node.detail; p.classList.add("streaming"); }
+  };
+  while (true){
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0){
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      const msg = parseSse(block);
+      if (msg.event === "phase"){
+        if (busy){ busy.status = msg.data.message || "生成中"; setStatus(busy.status, true); }
+      } else if (msg.event === "delta"){
+        delta += String(msg.data.text || "");
+        applyDelta();
+      } else if (msg.event === "node"){
+        node.children = (node.children || []).concat([msg.data]);
+        collapsed.delete(id);
+        if (busy) busy.status = "新分支正在生长";
+        render();
+        showPanel(byId.get(id) || node);
+        const p = document.getElementById("pdetail");
+        if (p) p.classList.add("streaming");
+        setStatus(busy ? busy.status : "生成中", true);
+        flashNode(msg.data.id);
+      } else if (msg.event === "done"){
+        if (msg.data.narrative) node.detail = msg.data.narrative;
+      } else if (msg.event === "error"){
+        throw new Error(msg.data.error || "生成失败");
+      }
+    }
+  }
+}
+async function callExpand(id, action, btn){
+  const node = byId.get(id);
+  if (!node || (busy && busy.id === id)) return;
+  const base = node.detail || "";
+  busy = { id: id, action: action,
+           status: action === "expand" ? "正在生成新的分支" : "正在续写叙事" };
+  panel.classList.add("working");
+  showPanel(node);
+  let streamed = false;
+  try {
+    let res = null;
+    try {
+      res = await fetch(API_BASE + "/api/expand/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id, action: action })
+      });
+      if (!res.ok || !res.body) res = null;
+    } catch (_) { res = null; }
+
+    if (res && res.body){
+      streamed = true;
+      await consumeStream(res, id, node, base);
+    } else {
+      const plain = await fetch(API_BASE + "/api/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id, action: action })
+      });
+      const data = await plain.json();
+      if (!plain.ok) throw new Error(data.error || ("HTTP " + plain.status));
+      if (data.narrative) node.detail = data.narrative;
+      if (Array.isArray(data.children) && data.children.length){
+        node.children = (node.children || []).concat(data.children);
+        collapsed.delete(id);
+      }
+      render();
+    }
+    busy = null;
+    panel.classList.remove("working");
+    showPanel(byId.get(id) || node);
+    setStatus(streamed ? "实时生成完成 ✓" : "完成 ✓");
+    centerOnNode(id, true);
+    flashNode(id);
+    showToast(streamed ? "实时生成完成" : "生成完成");
+  } catch (err){
+    busy = null;
+    panel.classList.remove("working");
+    showPanel(byId.get(id) || node);
+    setStatus("失败：" + err.message);
+    showToast("LLM 调用失败：" + err.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* seed regeneration + archives                                        */
+/* ------------------------------------------------------------------ */
+async function regenerateFromSeed(){
+  if (!LIVE){ showToast("按种子生成需要 serve 模式"); return; }
+  const raw = seedInput ? seedInput.value.trim() : "";
+  const btn = document.querySelector('[data-act="regenerate"]');
+  if (btn) btn.disabled = true;
+  showToast(raw ? "正在按种子 " + raw + " 生成…" : "正在随机生成新宇宙…");
+  const wasEvolving = evolving;
+  try {
+    const body = raw ? { seed: raw } : {};
+    const res = await fetch(API_BASE + "/api/regenerate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    stopEvolving();
+    applyPayload(data);
+    showToast("已生成新宇宙 · 种子 " + data.seed);
+    if (wasEvolving && providerIsMock(PROVIDER)) startEvolving(false);
+  } catch (err){
+    showToast("生成失败：" + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+function archiveSetStatus(message){
+  if (archiveStatus) archiveStatus.textContent = message || "";
+}
+function fmtArchiveDate(iso){
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  return date.toLocaleString();
+}
+function openArchive(){
+  if (!LIVE){ showToast("存档需要 serve 模式"); return; }
+  archiveModal.classList.remove("hidden");
+  document.getElementById("archive-btn").classList.add("on");
+  loadArchiveList();
+  setTimeout(() => { if (archiveName) archiveName.focus(); }, 60);
+}
+function closeArchive(){
+  archiveModal.classList.add("hidden");
+  document.getElementById("archive-btn").classList.remove("on");
+}
+function renderArchiveList(items){
+  if (!archiveList) return;
+  if (!items.length){
+    archiveList.innerHTML = '<div class="empty">还没有存档</div>';
+    return;
+  }
+  archiveList.innerHTML = items.map(a => {
+    const seed = (a.seed == null ? "—" : a.seed);
+    const meta = "种子 " + seed +
+      (a.nodes ? " · " + a.nodes + " 节点" : "") +
+      (a.created ? " · " + fmtArchiveDate(a.created) : "");
+    return `<div class="archive-item">
+      <div class="archive-main"><b>${escapeHtml(a.name || a.id)}</b>
+        <span>${escapeHtml(meta)}</span></div>
+      <div class="archive-actions">
+        <button data-archive-load="${escapeHtml(a.id)}">读取</button>
+        <a href="${API_BASE}/api/archive?id=${encodeURIComponent(a.id)}"
+           download="${escapeHtml(a.id)}.json">下载</a>
+      </div></div>`;
+  }).join("");
+}
+async function loadArchiveList(){
+  archiveSetStatus("读取存档列表…");
+  try {
+    const res = await fetch(API_BASE + "/api/archives", { cache: "no-store" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    const items = Array.isArray(data.archives) ? data.archives : [];
+    renderArchiveList(items);
+    archiveSetStatus(items.length ? "共 " + items.length + " 个存档" : "");
+  } catch (err){
+    archiveSetStatus("读取失败：" + err.message);
+    if (archiveList) archiveList.innerHTML = '<div class="empty">读取失败</div>';
+  }
+}
+async function saveArchive(){
+  const btn = document.getElementById("archive-save");
+  if (btn) btn.disabled = true;
+  archiveSetStatus("正在保存…");
+  try {
+    const res = await fetch(API_BASE + "/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: archiveName ? archiveName.value.trim() : "" })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    archiveSetStatus("已保存 · " + data.name);
+    if (archiveName) archiveName.value = "";
+    showToast("存档已保存：" + data.name);
+    await loadArchiveList();
+  } catch (err){
+    archiveSetStatus("保存失败：" + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+async function loadArchive(archiveId){
+  const wasEvolving = evolving;
+  archiveSetStatus("正在读取存档…");
+  try {
+    const res = await fetch(API_BASE + "/api/load", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: archiveId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    stopEvolving();
+    applyPayload(data);
+    closeArchive();
+    showToast("已读取存档 · 种子 " + data.seed);
+    if (wasEvolving && providerIsMock(PROVIDER)) startEvolving(false);
+  } catch (err){
+    archiveSetStatus("读取失败：" + err.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* autonomous evolution (dynamic mode)                                 */
+/* ------------------------------------------------------------------ */
+function providerIsMock(p){
+  if (!p) return false;
+  if (p.provider === "mock") return true;
+  return Array.isArray(p.chain) && p.chain.some(providerIsMock);
+}
+function nodeCount(){
+  let count = 0;
+  walkAll(DATA, 0, () => { count += 1; });
+  return count;
+}
+function evolveTarget(){
+  const pools = { planet: [], event: [], universe: [] };
+  const visible = [], all = [];
+  walkAll(DATA, 0, n => {
+    if (!pools[n.kind] || CAN_EXPAND[n.kind] === 0) return;
+    all.push(n);
+    if (byId.has(n.id)) visible.push(n);
+  });
+  const source = visible.length ? visible : all;
+  source.forEach(n => pools[n.kind].push(n));
+  const pool = pools.planet.concat(pools.event, pools.event, pools.universe);
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+}
+function updateEvolveUI(){
+  const btn = document.getElementById("evolve-btn");
+  if (!btn) return;
+  btn.classList.toggle("on", evolving);
+  btn.textContent = evolving ? "● 动态演化" : "动态演化";
+  btn.title = evolving
+    ? "正在持续生成新分支 · 点击暂停（本次已生长 " + evolveCount + "）"
+    : "持续自动生成新分支";
+}
+function scheduleEvolve(delay){
+  clearTimeout(evolveTimer);
+  if (!evolving) return;
+  evolveTimer = setTimeout(evolveOnce, delay == null ? 2200 + Math.random() * 2400 : delay);
+}
+function startEvolving(auto){
+  if (!LIVE){ showToast("动态演化需要 serve 模式"); return; }
+  if (evolving) return;
+  evolving = true;
+  updateEvolveUI();
+  showToast(auto ? "已开启动态演化（mock 自动生成）" : "动态演化已开启");
+  scheduleEvolve(600);
+}
+function stopEvolving(message){
+  evolving = false;
+  clearTimeout(evolveTimer);
+  evolveTimer = 0;
+  updateEvolveUI();
+  if (message) showToast(message);
+}
+function toggleEvolving(){
+  if (evolving) stopEvolving("动态演化已暂停");
+  else startEvolving(false);
+}
+async function evolveOnce(){
+  if (!evolving) return;
+  if (document.hidden){ scheduleEvolve(1500); return; }
+  if (tlPlay.active){ scheduleEvolve(1400); return; }
+  if (evolveBusy){ scheduleEvolve(800); return; }
+  if (nodeCount() > 420){ stopEvolving("宇宙已足够庞大，动态演化停止"); return; }
+  const node = evolveTarget();
+  if (!node){ stopEvolving("没有可展开的节点了"); return; }
+
+  evolveBusy = true;
+  const action = Math.random() < 0.28 ? "continue" : "expand";
+  const base = node.detail || "";
+  let delta = "";
+  try {
+    const res = await fetch(API_BASE + "/api/expand/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: node.id, action: action })
+    });
+    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let added = 0;
+    while (true){
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      let cut;
+      while ((cut = buffer.indexOf("\n\n")) >= 0){
+        const block = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        const msg = parseSse(block);
+        if (msg.event === "delta"){
+          delta += String(msg.data.text || "");
+          node.detail = base ? base + "\n\n" + delta : delta;
+          if (selectedId === node.id){
+            const p = document.getElementById("pdetail");
+            if (p){ p.textContent = node.detail; p.classList.add("streaming"); }
+          }
+        } else if (msg.event === "node"){
+          node.children = (node.children || []).concat([msg.data]);
+          collapsed.delete(node.id);
+          added += 1;
+          render();
+          flashNode(msg.data.id);
+        } else if (msg.event === "done"){
+          if (msg.data.narrative) node.detail = msg.data.narrative;
+        } else if (msg.event === "error"){
+          throw new Error(msg.data.error || "生成失败");
+        }
+      }
+    }
+    if (added) evolveCount += added;
+    if (selectedId === node.id) showPanel(byId.get(node.id) || node);
+    render();
+    updateEvolveUI();
+    if (added) showToast("新生长 " + added + " 个节点 · " + node.label);
+  } catch (err){
+    stopEvolving("动态演化暂停：" + err.message);
+  } finally {
+    evolveBusy = false;
+    if (evolving) scheduleEvolve();
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* mind map interactions                                               */
+/* ------------------------------------------------------------------ */
+function toggle(node){
+  if (node.children && node.children.length){
+    if (collapsed.has(node.id)) collapsed.delete(node.id);
+    else collapsed.add(node.id);
+  }
+  render();
+  showPanel(node);
+}
+panel.addEventListener("click", e => {
+  if (e.target.getAttribute("data-close")){ panel.classList.add("hidden"); clearHighlight(); return; }
+  const act = e.target.getAttribute && e.target.getAttribute("data-pact");
+  if (act) callExpand(e.target.getAttribute("data-id"), act, e.target);
+});
+nodesG.addEventListener("mouseover", e => {
+  const g = e.target.closest("g.node");
+  if (g) highlightChain(g.getAttribute("data-id"));
+});
+nodesG.addEventListener("mouseout", e => { if (e.target.closest("g.node")) clearHighlight(); });
+
+/* one-finger pan, two-finger pinch, tap to toggle, double-tap to zoom */
+const pointers = new Map();
+let gesture = null;
+function endPointer(e){
+  if (!pointers.has(e.pointerId)) return;
+  const g = gesture;
+  pointers.delete(e.pointerId);
+  const tapped = g && g.kind === "pan" && !g.moved && Date.now() - g.t < 700;
+  if (tapped && pointers.size === 0){
+    const el = g.target && g.target.closest ? g.target.closest("g.node") : null;
+    if (el){
+      const node = byId.get(el.getAttribute("data-id"));
+      if (node) toggle(node);
+    } else {
+      const now = Date.now();
+      if (now - lastTap.t < 330 &&
+          Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 42){
+        const r = svg.getBoundingClientRect();
+        setScale(scale * 1.7, e.clientX - r.left, e.clientY - r.top, true);
+        lastTap.t = 0;
+      } else {
+        lastTap = { t: now, x: e.clientX, y: e.clientY };
+        clearHighlight();
+      }
+    }
+  }
+  if (pointers.size === 0){ gesture = null; svg.classList.remove("dragging"); }
+  else if (pointers.size === 1){
+    const p = [...pointers.values()][0];
+    gesture = { kind: "pan", sx: p.x, sy: p.y, lx: p.x, ly: p.y,
+                moved: true, target: null, t: Date.now() };
+  }
+}
+svg.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  stopSmooth();
+  try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1){
+    gesture = { kind: "pan", sx: e.clientX, sy: e.clientY, lx: e.clientX,
+                ly: e.clientY, moved: false, target: e.target, t: Date.now() };
+  } else if (pointers.size === 2){
+    const pts = [...pointers.values()];
+    const r = svg.getBoundingClientRect();
+    gesture = { kind: "pinch",
+                d: Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)),
+                s0: scale, tx0: tx, ty0: ty,
+                cx: (pts[0].x + pts[1].x) / 2 - r.left,
+                cy: (pts[0].y + pts[1].y) / 2 - r.top,
+                moved: true, target: null, t: Date.now() };
+  }
+});
+svg.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!gesture) return;
+  if (gesture.kind === "pan" && pointers.size === 1){
+    if (Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > 7) gesture.moved = true;
+    if (gesture.moved){
+      tx += e.clientX - gesture.lx;
+      ty += e.clientY - gesture.ly;
+      applyTransform();
+      svg.classList.add("dragging");
+    }
+    gesture.lx = e.clientX; gesture.ly = e.clientY;
+  } else if (gesture.kind === "pinch" && pointers.size >= 2){
+    const pts = [...pointers.values()].slice(0, 2);
+    const r = svg.getBoundingClientRect();
+    const d = Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
+    const cx = (pts[0].x + pts[1].x) / 2 - r.left;
+    const cy = (pts[0].y + pts[1].y) / 2 - r.top;
+    const next = Math.min(3.5, Math.max(0.08, gesture.s0 * d / gesture.d));
+    scale = next;
+    tx = cx - (gesture.cx - gesture.tx0) * (next / gesture.s0);
+    ty = cy - (gesture.cy - gesture.ty0) * (next / gesture.s0);
+    applyTransform(); syncZoomUI();
+  }
+});
+svg.addEventListener("pointerup", endPointer);
+svg.addEventListener("pointercancel", endPointer);
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  stopSmooth();
+  const rect = svg.getBoundingClientRect();
+  setScale(scale * (e.deltaY < 0 ? 1.12 : 0.89), e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+window.addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+  if (e.key === "+" || e.key === "=") setScale(scale * 1.15, null, null, true);
+  else if (e.key === "-" || e.key === "_") setScale(scale / 1.15, null, null, true);
+  else if (e.key === "0") resetZoom();
+  else if (e.key === "f" || e.key === "F") fit();
+});
+
+document.getElementById("bar").addEventListener("click", e => {
+  const act = e.target.getAttribute && e.target.getAttribute("data-act");
+  if (!act) return;
+  if (act === "in") setScale(scale * 1.2, null, null, true);
+  else if (act === "out") setScale(scale / 1.2, null, null, true);
+  else if (act === "fit") fit();
+  else if (act === "reset") resetZoom();
+  else if (act === "expandall"){ collapsed.clear(); render(); }
+  else if (act === "collapse"){
+    collapsed.clear();
+    walkAll(DATA, 0, (n, d) => { if (n.children && n.children.length && d >= 1) collapsed.add(n.id); });
+    render();
+  } else if (act === "evolve") toggleEvolving();
+  else if (act === "regenerate") regenerateFromSeed();
+  else if (act === "archive") openArchive();
+  else if (act === "timeline") toggleTimeline();
+  else if (act === "svg") exportSvg();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearTimeout(evolveTimer);
+  else if (evolving) scheduleEvolve(700);
+});
+
+if (seedInput){
+  seedInput.addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); regenerateFromSeed(); }
+  });
+}
+document.getElementById("archive-save").addEventListener("click", saveArchive);
+document.getElementById("archive-refresh").addEventListener("click", loadArchiveList);
+archiveModal.addEventListener("click", e => {
+  if (e.target === archiveModal || e.target.getAttribute("data-archive-close")) closeArchive();
+});
+archiveList.addEventListener("click", e => {
+  const id = e.target.getAttribute && e.target.getAttribute("data-archive-load");
+  if (id) loadArchive(id);
+});
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !archiveModal.classList.contains("hidden")) closeArchive();
+});
+zoomSlider.addEventListener("input", () => {
+  stopSmooth();
+  setScale(Number(zoomSlider.value) / 100, null, null, false);
+});
+searchBox.addEventListener("input", () => { query = searchBox.value; render(); });
+
+function exportSvg(){
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("viewBox", `0 0 ${Math.round(bounds.w + 80)} ${Math.round(bounds.h + 80)}`);
+  clone.setAttribute("width", Math.round(bounds.w + 80));
+  clone.setAttribute("height", Math.round(bounds.h + 80));
+  const vp = clone.querySelector("#viewport");
+  if (vp){
+    vp.setAttribute("transform", "translate(40,40) scale(1)");
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bg.setAttribute("x", "0"); bg.setAttribute("y", "0");
+    bg.setAttribute("width", "100%"); bg.setAttribute("height", "100%");
+    bg.setAttribute("fill", "#0b0f19");
+    vp.parentNode.insertBefore(bg, vp);
+  }
+  const blob = new Blob([clone.outerHTML], { type: "image/svg+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cosmos-mindmap.svg";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ------------------------------------------------------------------ */
+/* timeline                                                            */
+/* ------------------------------------------------------------------ */
+function toggleTimeline(){
+  const hidden = tl.classList.toggle("hidden");
+  document.getElementById("tl-toggle").classList.toggle("on", !hidden);
+  if (!hidden) renderTimeline();
+  else stopPlayback(true);
+}
+function eventTree(node){
+  const out = [];
+  (node.children || []).forEach(c => {
+    if (c.kind === "event"){ out.push(c); out.push(...eventTree(c)); }
+  });
+  return out;
+}
+function collectTimeline(){
+  const universes = (DATA.children || []).filter(c => c.kind === "universe");
+  const bb = (DATA.children || []).find(c => c.kind === "bigbang");
+  let maxAge = 0;
+  universes.forEach(u => { maxAge = Math.max(maxAge, Number((u.meta || {}).age_gyr || 0)); });
+  maxAge = Math.ceil(Math.max(maxAge, 1));
+
+  const rows = [];
+  universes.forEach(u => {
+    const uAge = Number((u.meta || {}).age_gyr || maxAge);
+    rows.push({ label: u.label, id: u.id, barTo: uAge, bar: "#5b8def", events: [] });
+    const uEvents = eventTree(u);
+    if (uEvents.length)
+      rows.push({ label: "宇宙事件", id: u.id, barTo: 0, bar: null, events: uEvents });
+    (u.children || []).filter(c => c.kind === "planet").forEach(p => {
+      rows.push({ label: p.label, id: p.id, barTo: uAge, bar: "#3fbf7f",
+                  events: eventTree(p) });
+    });
+  });
+  const epochs = bb ? (bb.children || []).filter(c => c.kind === "epoch") : [];
+  return { rows, maxAge, epochs };
+}
+function niceStep(maxAge, plotW){
+  const candidates = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50];
+  for (const s of candidates){ if (plotW / (maxAge / s) >= 64) return s; }
+  return 100;
+}
+function updatePlayhead(t, silent){
+  if (!tlPlay.head || !tlPlay.x) return;
+  const x = tlPlay.x;
+  const px = x(t);
+  const head = tlPlay.head;
+  head.classList.remove("hidden");
+  head.querySelector("line").setAttribute("x1", px);
+  head.querySelector("line").setAttribute("x2", px);
+  head.querySelector("line").setAttribute("y1", tlPlay.top - 10);
+  head.querySelector("line").setAttribute("y2", tlPlay.bottom + 2);
+  const dot = head.querySelector("circle");
+  dot.setAttribute("cx", px); dot.setAttribute("cy", tlPlay.top - 10);
+  const label = head.querySelector("text");
+  label.setAttribute("x", px); label.setAttribute("y", tlPlay.top - 16);
+  label.setAttribute("text-anchor", px > tlPlay.x(tlPlay.maxAge) - 60 ? "end" : "middle");
+  label.textContent = t.toFixed(2) + " Gyr";
+  const clock = document.getElementById("tl-clock");
+  if (clock) clock.textContent = t.toFixed(2) + " Gyr";
+  tlPlay.dots.forEach(g => {
+    const age = Number(g.getAttribute("data-age") || 0);
+    const on = age <= t + 1e-9;
+    g.classList.toggle("lit", on);
+    g.classList.toggle("faded", !on);
+    if (on && !g.__lit && !silent) flashNode(g.getAttribute("data-node"));
+    g.__lit = on;
+  });
+  tlPlay.bars.forEach(rect => {
+    const to = Number(rect.getAttribute("data-bar-to") || 0);
+    rect.setAttribute("width", Math.max(2, x(Math.min(t, to)) - x(0)));
+  });
+}
+function stopPlayback(reset){
+  if (tlPlay.raf) cancelAnimationFrame(tlPlay.raf);
+  tlPlay.raf = 0;
+  tlPlay.active = false;
+  const btn = document.getElementById("tl-play");
+  if (btn) btn.textContent = "▶ 播放";
+  if (reset && tlPlay.head){
+    tlPlay.head.classList.add("hidden");
+    updatePlayhead(tlPlay.maxAge, true);
+  }
+  tlPlay.dots.forEach(g => { g.__lit = false; });
+}
+function playTimeline(){
+  if (tl.classList.contains("hidden")){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+    renderTimeline();
+  }
+  if (tlPlay.active){ stopPlayback(true); return; }
+  if (!tlPlay.head) renderTimeline();
+  const btn = document.getElementById("tl-play");
+  if (btn) btn.textContent = "⏸ 暂停";
+  tlPlay.active = true;
+  tlPlay.dots.forEach(g => { g.__lit = false; });
+  updatePlayhead(0, true);
+  const duration = Math.min(15000, Math.max(5200, tlPlay.maxAge * 1300));
+  const started = performance.now();
+  function frame(now){
+    if (!tlPlay.active) return;
+    const p = Math.min(1, (now - started) / duration);
+    updatePlayhead(p * tlPlay.maxAge, false);
+    if (p < 1){
+      tlPlay.raf = requestAnimationFrame(frame);
+    } else {
+      tlPlay.active = false; tlPlay.raf = 0;
+      if (btn) btn.textContent = "▶ 重播";
+      setTimeout(() => { if (!tlPlay.active && tlPlay.head) tlPlay.head.classList.add("hidden"); }, 1000);
+    }
+  }
+  tlPlay.raf = requestAnimationFrame(frame);
+}
+function renderTimeline(){
+  if (tlPlay.active) stopPlayback(false);
+  const { rows, maxAge, epochs } = collectTimeline();
+  const box = tlBody.getBoundingClientRect();
+  const W = Math.max(320, Math.floor(box.width));
+  const gutter = Math.min(176, Math.max(90, Math.round(W * 0.24)));
+  const padR = 22, stripH = 60, rowH = 24;
+  const H = stripH + 10 + rows.length * rowH + 26;
+  tlSvg.setAttribute("width", W); tlSvg.setAttribute("height", H);
+  tlSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const plotW = Math.max(80, W - gutter - padR);
+  const x = t => gutter + (Math.min(Math.max(t, 0), maxAge) / maxAge) * plotW;
+  const p = [];
+  p.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="none"/>`);
+  p.push(`<text x="10" y="16" class="tl-cap">大爆炸纪元 · 对数时间</text>`);
+
+  /* log-scale epoch strip */
+  const minLog = -44, maxLog = 9;
+  const lx = s => gutter + ((Math.log10(Math.max(s, 1e-45)) - minLog) / (maxLog - minLog)) * plotW;
+  p.push(`<line x1="${gutter}" y1="44" x2="${gutter + plotW}" y2="44" class="tl-axis"/>`);
+  p.push(`<text x="${gutter - 6}" y="47" class="tl-gridlabel" text-anchor="end">10⁻⁴⁴s</text>`);
+  p.push(`<text x="${gutter + plotW}" y="47" class="tl-gridlabel" text-anchor="end">10⁹s</text>`);
+  epochs.forEach((e, i) => {
+    const sec = Number((e.meta || {}).age_years || 0) * SEC_PER_YEAR;
+    const px = lx(sec);
+    const ty2 = (i % 2 === 0) ? 24 : 34;
+    p.push(`<line x1="${px}" y1="38" x2="${px}" y2="50" class="tl-tick"/>`);
+    p.push(`<circle cx="${px}" cy="44" r="3.4" fill="#ff8a3d"/>`);
+    p.push(`<text x="${px}" y="${ty2}" class="tl-elabel" text-anchor="middle">${escapeHtml(e.label)}</text>`);
+    p.push(`<g class="tl-ev" data-node="${escapeHtml(e.id)}"><rect x="${px - 7}" y="${ty2 - 11}" width="14" height="28" fill="transparent"/><title>${escapeHtml(e.label)} · ${escapeHtml(((e.meta||{}).age)||"")}</title></g>`);
+  });
+
+  /* linear Gyr axis + rows */
+  const top = stripH + 10;
+  const bottom = top + rows.length * rowH;
+  const step = niceStep(maxAge, plotW);
+  for (let t = 0; t <= maxAge + 1e-9; t += step){
+    const px = x(t);
+    p.push(`<line x1="${px}" y1="${top - 6}" x2="${px}" y2="${bottom}" class="tl-grid"/>`);
+    p.push(`<text x="${px}" y="${bottom + 16}" class="tl-gridlabel" text-anchor="middle">${(Math.round(t * 100) / 100)}</text>`);
+  }
+  p.push(`<text x="${gutter - 6}" y="${top + 4}" class="tl-gridlabel" text-anchor="end">Gyr →</text>`);
+
+  const labelMax = Math.max(8, Math.floor((gutter - 16) / 6.4));
+  rows.forEach((row, i) => {
+    const cy = top + i * rowH + rowH / 2 - 4;
+    p.push(`<text x="10" y="${cy + 4}" class="tl-rowlabel" data-node="${escapeHtml(row.id)}" style="cursor:pointer">${escapeHtml(String(row.label).slice(0, labelMax))}</text>`);
+    if (row.bar && row.barTo > 0){
+      p.push(`<rect class="tl-bar" data-bar-to="${row.barTo}" x="${x(0)}" y="${cy - 4}" width="${Math.max(2, x(row.barTo) - x(0))}" height="8" rx="3" fill="${row.bar}"/>`);
+    }
+    row.events.forEach(ev => {
+      const age = Number((ev.meta || {}).age_gyr || 0);
+      const sev = Number((ev.meta || {}).severity || 0.5);
+      const px = x(age), r = 2.6 + sev * 4;
+      p.push(`<g class="tl-ev" data-node="${escapeHtml(ev.id)}" data-age="${age}">` +
+        `<circle cx="${px}" cy="${cy}" r="${r + 6}" fill="transparent"/>` +
+        `<circle class="tl-dot" cx="${px}" cy="${cy}" r="${r}" fill="${sevColor(sev)}" fill-opacity="0.92"/>` +
+        `<title>${escapeHtml(ev.label)} · ${age.toFixed(2)} Gyr · 严重度 ${sev.toFixed(2)}</title></g>`);
+    });
+  });
+  p.push(`<g id="tl-playhead" class="hidden"><line x1="0" y1="0" x2="0" y2="0"/>` +
+         `<circle cx="0" cy="0" r="3.5"/><text x="0" y="0">0</text></g>`);
+  tlSvg.innerHTML = p.join("");
+  tlPlay.maxAge = maxAge; tlPlay.x = x; tlPlay.top = top; tlPlay.bottom = bottom;
+  tlPlay.head = tlSvg.querySelector("#tl-playhead");
+  tlPlay.dots = Array.from(tlSvg.querySelectorAll(".tl-ev[data-age]"));
+  tlPlay.bars = Array.from(tlSvg.querySelectorAll(".tl-bar[data-bar-to]"));
+  updatePlayhead(maxAge, true);
+}
+tlSvg.addEventListener("click", e => {
+  const g = e.target.closest("[data-node]");
+  if (g) revealNode(g.getAttribute("data-node"));
+});
+document.getElementById("tl-play").addEventListener("click", playTimeline);
+
+/* touch-friendly timeline height handle */
+let tlResize = null;
+const tlHandle = document.getElementById("tl-handle");
+tlHandle.addEventListener("pointerdown", e => {
+  tlResize = { id: e.pointerId, y: e.clientY, h: tl.offsetHeight, raf: 0 };
+  try { tlHandle.setPointerCapture(e.pointerId); } catch (_) {}
+  e.preventDefault();
+});
+tlHandle.addEventListener("pointermove", e => {
+  if (!tlResize || e.pointerId !== tlResize.id) return;
+  const h = Math.min(window.innerHeight - 140, Math.max(140, tlResize.h + (tlResize.y - e.clientY)));
+  tl.style.height = h + "px";
+  if (!tlResize.raf) tlResize.raf = requestAnimationFrame(() => {
+    if (!tlResize) return;
+    tlResize.raf = 0;
+    if (!tl.classList.contains("hidden")) renderTimeline();
+  });
+});
+function tlResizeEnd(e){
+  if (!tlResize || e.pointerId !== tlResize.id) return;
+  if (tlResize.raf) cancelAnimationFrame(tlResize.raf);
+  tlResize = null;
+}
+tlHandle.addEventListener("pointerup", tlResizeEnd);
+tlHandle.addEventListener("pointercancel", tlResizeEnd);
+if (window.ResizeObserver) new ResizeObserver(() => { if (!tl.classList.contains("hidden")) renderTimeline(); }).observe(tlBody);
+window.addEventListener("resize", () => { if (!tl.classList.contains("hidden")) renderTimeline(); });
+
+/* ------------------------------------------------------------------ */
+/* legend + init                                                       */
+/* ------------------------------------------------------------------ */
+(function initLegend(){
+  const el = document.getElementById("legend");
+  const order = ["root","bigbang","epoch","universe","planet","event"];
+  el.innerHTML = "<b style='font-size:11px;letter-spacing:1px;color:#8b97b0'>LEGEND</b>" +
+    order.map(k => `<div class="row"><span class="chip" style="background:${KIND_COLORS[k]}"></span>${KIND_LABEL[k]}</div>`).join("");
+})();
+
+function applyPayload(payload){
+  const timelineOpen = !tl.classList.contains("hidden");
+  DATA = payload.tree;
+  if (!DATA) throw new Error("宇宙数据为空");
+  LIVE = !!payload.live;
+  PROVIDER = payload.provider || PROVIDER;
+  TITLE = payload.title || DATA.label || "Cosmos";
+  document.title = TITLE + " — Cosmos Mind Map";
+  const brand = document.querySelector("#bar .brand");
+  if (brand) brand.textContent = "✦ " + TITLE;
+  if (seedInput){ seedInput.value = (payload.seed == null ? "" : payload.seed); seedInput.disabled = !LIVE; }
+  const seedBtn = document.querySelector('[data-act="regenerate"]');
+  if (seedBtn) seedBtn.disabled = !LIVE;
+  const archiveBtn = document.getElementById("archive-btn");
+  if (archiveBtn) archiveBtn.disabled = !LIVE;
+  stopEvolving();
+  busy = null;
+  evolveBusy = false;
+  evolveCount = 0;
+  selectedId = null;
+  collapsed.clear();
+  knownIds = new Set();
+  query = "";
+  if (searchBox) searchBox.value = "";
+  if (panel) panel.classList.add("hidden");
+  clearHighlight();
+  if (!LIVE){
+    const toggle = document.getElementById("tl-toggle");
+    if (toggle) toggle.title = "打开时间线";
+  }
+  if (timelineOpen){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+  }
+  syncChrome();
+  render();
+  fit();
+}
+
+async function boot(){
+  let payload = window.COSMOS_BOOTSTRAP || null;
+  if (!payload){
+    const res = await fetch(API_BASE + "/api/bootstrap", { cache: "no-store" });
+    if (!res.ok) throw new Error("无法加载宇宙数据 (HTTP " + res.status + ")");
+    payload = await res.json();
+  }
+  if (window.innerWidth >= 1100){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+  }
+  applyPayload(payload);
+  if (document.fonts && document.fonts.ready){
+    document.fonts.ready.then(() => syncChrome());
+  }
+  if (LIVE && providerIsMock(PROVIDER)) startEvolving(true);
+}
+boot().catch(err => {
+  console.error(err);
+  showToast("加载失败：" + err.message);
+  const brand = document.querySelector("#bar .brand");
+  if (brand) brand.textContent = "✦ 加载失败";
+});
+
+</script>
+</body>
+</html>

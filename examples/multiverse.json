@@ -1,0 +1,16 @@
+{
+  "name": "The Vela Branch",
+  "seed": 2026,
+  "universes": 5,
+  "branching": 0.4,
+  "max_generation": 2,
+  "law_sigma": 0.22,
+  "planets_per_universe": [2, 6],
+  "universe_events": [4, 8],
+  "planet_events": [3, 6],
+  "narrator": "rule",
+  "language": "en",
+  "extras": {
+    "note": "A wider, more mutational run: more branches, more worlds, more events."
+  }
+}

@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Aeloria Multiverse — Cosmos Mind Map</title>
+<style>
+:root{
+    --bg:#0b0f19; --bg2:#111726; --bg3:#0e1524; --line:#26314a; --fg:#e8ecf5;
+    --muted:#8b97b0; --accent:#f5c451;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:radial-gradient(1200px 800px at 20% -10%, #16203a 0%, var(--bg) 55%);
+    color:var(--fg);
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,"Noto Sans SC",sans-serif;
+    overflow:hidden;
+  }
+  #bar{
+    position:fixed;inset:0 0 auto 0;min-height:52px;display:flex;align-items:center;
+    gap:8px;padding:6px 14px;background:rgba(10,14,24,.9);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);z-index:20;flex-wrap:wrap;
+  }
+  #bar .brand{font-weight:700;letter-spacing:.3px;color:var(--accent);white-space:nowrap;
+    max-width:26vw;overflow:hidden;text-overflow:ellipsis}
+  #search{
+    background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:6px 10px;min-width:150px;outline:none;
+  }
+  #search:focus{border-color:var(--accent)}
+  #bar .spacer{flex:1}
+  button{
+    background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:6px 11px;cursor:pointer;font-size:13px;
+  }
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  .zoomwrap{display:flex;align-items:center;gap:8px;
+    background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:3px 10px}
+  #zoom{width:130px;accent-color:var(--accent)}
+  #zoomval{color:var(--muted);font-size:12px;min-width:40px;text-align:right}
+  main{position:fixed;inset:var(--barh,52px) 0 0 0}
+  svg#map{width:100%;height:100%;display:block;cursor:grab}
+  svg#map.dragging{cursor:grabbing}
+  .link{fill:none;stroke:#33405e;stroke-width:1.6}
+  .link.active{stroke:var(--accent);stroke-width:2.4}
+  .node{cursor:pointer}
+  .node rect{stroke:rgba(255,255,255,.14);stroke-width:1;
+    transform-box:fill-box;transform-origin:center}
+  .node text{fill:#0b0f19;font-size:13px;font-weight:600;dominant-baseline:middle;
+    pointer-events:none;user-select:none}
+  .node.dim{opacity:.28}
+  .node.hit rect{stroke:#fff;stroke-width:2.4}
+  .node.active rect{stroke:var(--accent);stroke-width:2.6}
+  #panel{
+    position:fixed;top:calc(var(--barh,52px) + 14px);right:14px;width:352px;
+    max-height:calc(100vh - var(--barh,52px) - 70px);
+    overflow:auto;background:rgba(17,23,38,.97);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;z-index:15;box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  #panel.hidden{display:none}
+  #panel h2{margin:0 0 4px;font-size:16px}
+  #panel .kind{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1.4px}
+  #panel p{color:#cdd6ea;font-size:13px;white-space:pre-wrap}
+  #panel table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px}
+  #panel td{padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+  #panel td:first-child{color:var(--muted);padding-right:10px;white-space:nowrap}
+  #panel .close{float:right;cursor:pointer;color:var(--muted)}
+  #panel .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  #panel .actions button{background:#182238}
+  #panel .status{margin-top:10px;font-size:12px;color:var(--muted);min-height:14px}
+  #legend{
+    position:fixed;left:14px;bottom:14px;z-index:15;background:rgba(17,23,38,.92);
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;
+  }
+  #legend .row{display:flex;align-items:center;gap:8px;margin:2px 0}
+  #legend .chip{width:11px;height:11px;border-radius:3px;display:inline-block}
+  #hint{position:fixed;right:16px;bottom:14px;color:var(--muted);font-size:11.5px;z-index:15}
+
+  /* ---- timeline panel ---- */
+  #timeline{
+    position:fixed;left:0;right:0;bottom:0;height:44vh;min-height:150px;z-index:18;
+    background:rgba(9,13,22,.98);border-top:1px solid var(--line);
+    display:flex;flex-direction:column;transform:translateY(0);transition:transform .18s ease;
+  }
+  #timeline.hidden{transform:translateY(101%)}
+  #tl-handle{height:12px;cursor:ns-resize;background:linear-gradient(transparent,rgba(245,196,81,.10));
+    border-top:1px solid var(--line);flex:0 0 auto}
+  #tl-head{display:flex;align-items:center;gap:10px;padding:4px 14px;flex:0 0 auto;
+    border-bottom:1px solid rgba(38,49,74,.6)}
+  #tl-head b{color:var(--accent);font-size:13px}
+  #tl-head .sub{color:var(--muted);font-size:11.5px}
+  #tl-body{flex:1 1 auto;overflow:auto;padding:0 0 6px}
+  svg#tl{display:block}
+  .tl-cap{fill:var(--muted);font-size:10px;letter-spacing:.6px}
+  .tl-axis{stroke:var(--line);stroke-width:1}
+  .tl-grid{stroke:#1c2438;stroke-width:1}
+  .tl-gridlabel{fill:var(--muted);font-size:10px}
+  .tl-tick{stroke:#ff8a3d;stroke-width:1}
+  .tl-elabel{fill:#c9a227;font-size:9px}
+  .tl-rowlabel{fill:#c4cde0;font-size:11.5px}
+  .tl-rowlabel.hi{fill:var(--accent)}
+  .tl-bar{opacity:.35;rx:3}
+  .tl-ev{cursor:pointer}
+  .tl-ev:hover{stroke:#fff;stroke-width:1.6}
+  /* ---- touch, motion & live generation ---- */
+  svg#map{touch-action:none;user-select:none;-webkit-user-select:none}
+  #viewport.smooth{transition:transform .42s cubic-bezier(.22,.8,.24,1)}
+  #bar button{min-height:34px;touch-action:manipulation}
+  input#zoom{height:26px;cursor:pointer}
+  #zoom::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+    border-radius:50%;background:var(--accent);border:none}
+  #zoom::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--accent)}
+  @keyframes nodeIn{from{opacity:0}to{opacity:1}}
+  @keyframes nodePop{from{transform:scale(.82)}to{transform:scale(1)}}
+  @keyframes linkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  .node.enter > rect{animation:nodePop .42s cubic-bezier(.2,.9,.3,1.25) both;
+    animation-delay:var(--d,0ms)}
+  .node.enter > text{animation:nodeIn .36s ease both;animation-delay:var(--d,0ms)}
+  .link.enter{stroke-dasharray:1;stroke-dashoffset:1;animation:linkDraw .5s ease forwards;
+    animation-delay:var(--d,0ms)}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 20px 50px rgba(0,0,0,.5)}
+    50%{box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 26px rgba(245,196,81,.28)}}
+  #panel.working{animation:pulseGlow 1.5s ease-in-out infinite}
+  #panel p.streaming::after{content:"▍";color:var(--accent);
+    animation:blink .8s steps(1) infinite;margin-left:1px}
+  @keyframes blink{50%{opacity:0}}
+  .status .dot{display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);margin-left:3px;animation:bounce 1s infinite}
+  .status .dot:nth-child(2){animation-delay:.15s}
+  .status .dot:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.35}
+    40%{transform:translateY(-4px);opacity:1}}
+  #evolve-btn.on{border-color:#3fbf7f;color:#7ee2b0;
+  animation:evolvePulse 1.6s ease-in-out infinite}
+@keyframes evolvePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(63,191,127,0)}
+  50%{box-shadow:0 0 14px 0 rgba(63,191,127,.38)}
+}
+#tl-play{min-width:66px;padding:3px 9px;font-size:12px}
+  #tl-head .spacer{flex:1}
+  #tl-clock{font-variant-numeric:tabular-nums;color:var(--accent);font-size:12px;
+    min-width:66px;text-align:right}
+  .tl-ev{transition:opacity .3s ease}
+  .tl-ev.faded{opacity:.12}
+  .tl-ev.lit{filter:drop-shadow(0 0 4px rgba(255,255,255,.65))}
+  @keyframes tlDotIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .tl-dot{animation:tlDotIn .4s ease both}
+  #tl-playhead{pointer-events:none}
+  #tl-playhead.hidden{display:none}
+  #tl-playhead line{stroke:var(--accent);stroke-width:1.3;stroke-dasharray:4 4;opacity:.9}
+  #tl-playhead circle{fill:var(--accent);filter:drop-shadow(0 0 7px var(--accent))}
+  #tl-playhead text{fill:var(--accent);font-size:10px;font-weight:600}
+  #tl-handle{touch-action:none}
+  /* ---- seed + archive ---- */
+  .seedwrap{display:flex;align-items:center;gap:4px;background:var(--bg2);
+    border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
+  .seedwrap input{width:86px;background:transparent;border:none;color:var(--fg);
+    outline:none;font-size:12.5px}
+  .seedwrap button{padding:4px 8px;font-size:12px;border-radius:6px;min-height:28px}
+  #seed::-webkit-outer-spin-button,#seed::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  #seed{-moz-appearance:textfield;appearance:textfield}
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(4,7,13,.66);
+    backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal.hidden{display:none}
+  .modal-card{width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;
+    background:rgba(17,23,38,.99);border:1px solid var(--line);border-radius:16px;
+    padding:16px 18px;box-shadow:0 30px 80px rgba(0,0,0,.65);
+    animation:modalIn .22s ease both}
+  @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98)}
+    to{opacity:1;transform:none}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .modal-head b{color:var(--accent)}
+  .modal-close{cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:6px}
+  .modal-close:hover{color:var(--fg);background:var(--bg2)}
+  .save-row{display:flex;gap:8px}
+  .save-row input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--fg);
+    border-radius:8px;padding:8px 10px;outline:none;min-width:0}
+  .save-row input:focus{border-color:var(--accent)}
+  .archive-hint{color:var(--muted);font-size:11.5px;margin:8px 0 10px}
+  .archive-list{flex:1;overflow:auto;min-height:120px;border-top:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.06);margin:0 -4px 10px;padding:6px 4px}
+  .archive-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px}
+  .archive-item:hover{background:rgba(255,255,255,.04)}
+  .archive-main{flex:1;min-width:0}
+  .archive-main b{display:block;font-size:13px;font-weight:600;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .archive-main span{color:var(--muted);font-size:11px}
+  .archive-actions{display:flex;gap:6px;flex-shrink:0}
+  .archive-actions button{padding:4px 8px;font-size:12px;min-height:28px}
+  .archive-actions a{color:var(--muted);font-size:11.5px;text-decoration:none;
+    border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+  .archive-actions a:hover{color:var(--accent);border-color:var(--accent)}
+  .archive-list .empty{color:var(--muted);font-size:12.5px;padding:24px 8px;text-align:center}
+  .modal-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  #archive-status{color:var(--muted);font-size:12px}
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);z-index:40;
+    background:#1b2740;border:1px solid var(--line);color:var(--fg);border-radius:10px;
+    padding:8px 14px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s ease;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media (max-width:700px){
+    #bar{gap:6px;padding:6px 8px}
+    #bar .brand{max-width:42vw;font-size:13px}
+    #search{flex:1 1 130px;min-width:0}
+    .zoomwrap{padding:3px 8px}
+    #zoom{width:88px}
+    #legend{display:none}
+    #hint{display:none}
+    #panel{left:8px;right:8px;width:auto;top:calc(var(--barh,52px) + 8px);
+      max-height:52vh;z-index:19}
+    #timeline{height:46vh}
+    #tl-head .sub{display:none}
+    .seedwrap input{width:62px}
+    .modal{padding:8px}
+    .modal-card{max-height:88vh}
+  }
+
+</style>
+</head>
+<body>
+<header id="bar">
+  <div class="brand">✦ The Aeloria Multiverse</div>
+  <input id="search" placeholder="Search nodes…" autocomplete="off" />
+  <div class="seedwrap" title="输入种子后按回车重新生成；留空则随机">
+    <input id="seed" type="number" min="0" step="1" placeholder="种子" autocomplete="off" />
+    <button data-act="regenerate">生成</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="zoomwrap">
+    <button data-act="out" title="Zoom out (−)">－</button>
+    <input id="zoom" type="range" min="8" max="350" value="100" />
+    <button data-act="in" title="Zoom in (+)">＋</button>
+    <span id="zoomval">100%</span>
+  </div>
+  <button data-act="fit" title="Fit to window (F)">适应</button>
+  <button data-act="reset" title="Reset to 100% (0)">100%</button>
+  <button data-act="evolve" id="evolve-btn" title="持续自动生成新分支">动态演化</button>
+  <button data-act="timeline" id="tl-toggle">时间线</button>
+  <button data-act="collapse">折叠全部</button>
+  <button data-act="expandall">展开全部</button>
+  <button data-act="archive" id="archive-btn">存档</button>
+  <button data-act="svg">导出 SVG</button>
+</header>
+<main>
+  <svg id="map">
+    <g id="viewport">
+      <g id="links"></g>
+      <g id="nodes"></g>
+    </g>
+  </svg>
+  <aside id="panel" class="hidden"></aside>
+  <div id="legend"></div>
+  <div id="hint">点击/轻点折叠 · 拖拽/单指平移 · 双指捏合或滚轮缩放 · 双击放大 · 快捷键 + − 0 F</div>
+</main>
+<section id="timeline" class="hidden">
+  <div id="tl-handle" title="拖动调整高度"></div>
+  <div id="tl-head">
+    <b>时间线</b>
+    <button id="tl-play" title="播放时间线">▶ 播放</button>
+    <span id="tl-clock">0.00 Gyr</span>
+    <span class="spacer"></span>
+    <span class="sub">横轴：大爆炸之后的宇宙时间（Gyr）· 顶栏：大爆炸纪元（对数时间，秒）</span>
+  </div>
+  <div id="tl-body"><svg id="tl"></svg></div>
+</section>
+<div id="archive-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="archive-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <b id="archive-title">存档</b>
+      <span class="modal-close" data-archive-close="1" title="关闭">✕</span>
+    </div>
+    <div class="save-row">
+      <input id="archive-name" placeholder="存档名称（可选）" maxlength="80" autocomplete="off" />
+      <button id="archive-save">保存当前</button>
+    </div>
+    <div class="archive-hint">存档是服务器上的 JSON 文件，包含当前整棵树（含 LLM 展开的内容）。</div>
+    <div id="archive-list" class="archive-list"><div class="empty">加载中…</div></div>
+    <div class="modal-foot">
+      <span id="archive-status"></span>
+      <button id="archive-refresh">刷新</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>window.COSMOS_BOOTSTRAP = {"tree": {"id": "root", "label": "The Aeloria Multiverse", "kind": "root", "detail": "A cosmos of 4 parallel universes and 17 worlds, generated from seed 1337.", "meta": {"seed": 1337, "universes": 4, "planets": 17, "events": 71, "provider": "rule", "model": "—"}, "children": [{"id": "bigbang", "label": "Big Bang", "kind": "bigbang", "detail": "A fluctuation in nothingness becomes the seed of every possible history. What follows is not one universe but a family of them.", "meta": {"epochs": 11, "seed": 1337}, "children": [{"id": "epoch:Planck epoch", "label": "Planck epoch", "kind": "epoch", "detail": "Gravity and the other forces are one. Spacetime is a quantum foam with no stable geometry; time itself is not yet meaningful.", "meta": {"age": "1e-43 s", "age_years": 3.2e-51, "temperature": "1e+32 K"}, "children": []}, {"id": "epoch:Grand unification", "label": "Grand unification", "kind": "epoch", "detail": "Gravity decouples from the unified force. A first arrow of time appears as the young cosmos begins to cool.", "meta": {"age": "3e-42 s", "age_years": 1e-49, "temperature": "1e+29 K"}, "children": []}, {"id": "epoch:Inflation", "label": "Inflation", "kind": "epoch", "detail": "Space expands by a factor of 10^26 in a fraction of a second. Quantum fluctuations are stretched into the seeds of every galaxy that will ever exist.", "meta": {"age": "1e-36 s", "age_years": 3.2e-44, "temperature": "1e+27 K"}, "children": []}, {"id": "epoch:Electroweak epoch", "label": "Electroweak epoch", "kind": "epoch", "detail": "The strong force separates. Particles acquire mass through the Higgs field as symmetry breaks.", "meta": {"age": "5e-31 s", "age_years": 1.6e-38, "temperature": "1e+15 K"}, "children": []}, {"id": "epoch:Quark epoch", "label": "Quark epoch", "kind": "epoch", "detail": "Quarks, leptons and gluons move freely. Matter and antimatter annihilate in a faintly lopsided contest.", "meta": {"age": "4e-29 s", "age_years": 1.2e-36, "temperature": "1e+12 K"}, "children": []}, {"id": "epoch:Hadron epoch", "label": "Hadron epoch", "kind": "epoch", "detail": "Quarks bind into protons and neutrons. The surviving matter/antimatter asymmetry freezes in at roughly one baryon per billion photons.", "meta": {"age": "1e-18 s", "age_years": 3.2e-26, "temperature": "1e+10 K"}, "children": []}, {"id": "epoch:Lepton epoch", "label": "Lepton epoch", "kind": "epoch", "detail": "Neutrinos decouple and stream away. Electrons and positrons annihilate, leaving the lepton budget that will feed the first atoms.", "meta": {"age": "1e-08 s", "age_years": 3.2e-16, "temperature": "1e+09 K"}, "children": []}, {"id": "epoch:Nucleosynthesis", "label": "Nucleosynthesis", "kind": "epoch", "detail": "Primordial fusion forges hydrogen, helium and a trace of lithium. The elemental recipe of the cosmos is set within minutes.", "meta": {"age": "2e-01 s", "age_years": 5.7e-09, "temperature": "1e+08 K"}, "children": []}, {"id": "epoch:Recombination", "label": "Recombination", "kind": "epoch", "detail": "Electrons finally bind to nuclei. The fog clears, photons stream free, and the cosmic microwave background is released.", "meta": {"age": "3.3 h", "age_years": 0.00038, "temperature": "3e+03 K"}, "children": []}, {"id": "epoch:Dark ages", "label": "Dark ages", "kind": "epoch", "detail": "Neutral hydrogen fills a lightless, cooling cosmos. Gravity quietly assembles the first filaments of structure.", "meta": {"age": "3.7 d", "age_years": 0.01, "temperature": "6e+01 K"}, "children": []}, {"id": "epoch:Reionization", "label": "Reionization", "kind": "epoch", "detail": "The first stars ignite, then die, reionizing the intergalactic medium. The universe becomes visible to itself.", "meta": {"age": "182.6 d", "age_years": 0.5, "temperature": "3e+01 K"}, "children": []}]}, {"id": "uni:0001", "label": "Vexis", "kind": "universe", "detail": "Vexis is a marginal branch 0 generations from the Big Bang. Constants run wild here: entropy 1.263. It has 2 large spatial dimensions. Given roughly 12.90 Gyr of history, it holds 5 notable worlds and expands toward a big crunch.", "meta": {"generation": 0, "destiny": "big crunch", "age": "12.9 Gyr", "age_gyr": 12.9, "habitability": 0.53, "expansion": 0.93, "worlds": 5, "gravity": 0.821, "strong_force": 1.082, "dark_energy": 0.876, "entropy": 1.263, "dimensions": 2.0}, "children": [{"id": "pln:0005", "label": "Cyassa I", "kind": "planet", "detail": "Cyassa I is a ice world orbiting at 4.291 AU with 10.673g and a mean temperature of 140 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "ice", "orbit": "4.291 AU", "gravity": "10.673 g", "temperature": "140 K", "atmosphere": "N2", "habitability": 0.24, "biosphere": "sterile", "moons": 2}, "children": [{"id": "evt:0015", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "5.43 Gyr", "age_gyr": 5.429, "severity": 0.82, "scope": "planet", "tags": "radiation"}, "children": []}, {"id": "evt:0018", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "6.55 Gyr", "age_gyr": 6.551, "severity": 0.7, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0016", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "9.01 Gyr", "age_gyr": 9.007, "severity": 0.61, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0014", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "10.41 Gyr", "age_gyr": 10.411, "severity": 0.71, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0017", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "10.68 Gyr", "age_gyr": 10.682, "severity": 1.0, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0006", "label": "Belterra II", "kind": "planet", "detail": "Belterra II is a terrestrial world orbiting at 0.313 AU with 3.854g and a mean temperature of 524 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "terrestrial", "orbit": "0.313 AU", "gravity": "3.854 g", "temperature": "524 K", "atmosphere": "N2", "habitability": 0.25, "biosphere": "prebiotic", "moons": 2}, "children": [{"id": "evt:0021", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "2.28 Gyr", "age_gyr": 2.281, "severity": 0.63, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0019", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "5.17 Gyr", "age_gyr": 5.174, "severity": 0.49, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0020", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "5.92 Gyr", "age_gyr": 5.924, "severity": 0.65, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "pln:0007", "label": "Nerheim III", "kind": "planet", "detail": "Nerheim III is a oceanic world orbiting at 0.443 AU with 0.413g and a mean temperature of 483 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "oceanic", "orbit": "0.443 AU", "gravity": "0.413 g", "temperature": "483 K", "atmosphere": "N2", "habitability": 0.3, "biosphere": "sterile", "moons": 3}, "children": [{"id": "evt:0024", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "2.77 Gyr", "age_gyr": 2.768, "severity": 0.94, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0022", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "4.57 Gyr", "age_gyr": 4.571, "severity": 0.78, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0023", "label": "Stellar superflare", "kind": "event", "detail": "The host star unloads a coronal mass ejection strong enough to strip an unprotected atmosphere.", "meta": {"age": "11.97 Gyr", "age_gyr": 11.974, "severity": 0.64, "scope": "planet", "tags": "radiation"}, "children": []}]}, {"id": "pln:0008", "label": "Aurvale IV", "kind": "planet", "detail": "Aurvale IV is a oceanic world orbiting at 0.786 AU with 1.714g and a mean temperature of 345 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "oceanic", "orbit": "0.786 AU", "gravity": "1.714 g", "temperature": "345 K", "atmosphere": "N2", "habitability": 0.54, "biosphere": "prebiotic", "moons": 2}, "children": [{"id": "evt:0026", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "8.38 Gyr", "age_gyr": 8.381, "severity": 0.68, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0025", "label": "Climate collapse", "kind": "event", "detail": "Runaway feedbacks unravel the biosphere's margin for error, forcing whatever lives here to adapt fast or vanish.", "meta": {"age": "10.11 Gyr", "age_gyr": 10.114, "severity": 0.71, "scope": "planet", "tags": "climate, life"}, "children": []}]}, {"id": "pln:0009", "label": "Cyis V", "kind": "planet", "detail": "Cyis V is a oceanic world orbiting at 2.247 AU with 0.855g and a mean temperature of 220 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "oceanic", "orbit": "2.247 AU", "gravity": "0.855 g", "temperature": "220 K", "atmosphere": "N2", "habitability": 0.58, "biosphere": "multicellular", "moons": 0}, "children": [{"id": "evt:0028", "label": "Runaway greenhouse", "kind": "event", "detail": "Oceans evaporate, water vapour traps heat, and the planet tips into a permanent furnace state.", "meta": {"age": "0.23 Gyr", "age_gyr": 0.227, "severity": 1.0, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0027", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.10 Gyr", "age_gyr": 1.103, "severity": 0.56, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0030", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "2.96 Gyr", "age_gyr": 2.962, "severity": 0.58, "scope": "planet", "tags": "orbital, exotic"}, "children": []}, {"id": "evt:0029", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "7.79 Gyr", "age_gyr": 7.785, "severity": 0.41, "scope": "planet", "tags": "life, exotic"}, "children": []}]}, {"id": "evt:0013", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "0.63 Gyr", "age_gyr": 0.633, "severity": 0.74, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0011", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "9.93 Gyr", "age_gyr": 9.932, "severity": 0.7, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0010", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "9.94 Gyr", "age_gyr": 9.936, "severity": 0.4, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0012", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "10.51 Gyr", "age_gyr": 10.507, "severity": 0.32, "scope": "universe", "tags": "chemistry"}, "children": []}]}, {"id": "uni:0002", "label": "Fenia", "kind": "universe", "detail": "Fenia is a life-friendly branch 0 generations from the Big Bang. Its constants sit comfortably close to our own. Given roughly 15.50 Gyr of history, it holds 4 notable worlds and expands toward a heat death.", "meta": {"generation": 0, "destiny": "heat death", "age": "15.5 Gyr", "age_gyr": 15.5, "habitability": 0.67, "expansion": 1.23, "worlds": 4, "gravity": 0.849, "strong_force": 1.049, "dark_energy": 1.194, "entropy": 0.772, "dimensions": 3.0}, "children": [{"id": "pln:0031", "label": "Morheim I", "kind": "planet", "detail": "Morheim I is a terrestrial world orbiting at 0.902 AU with 0.577g and a mean temperature of 332 K under N2-rich air. Its biosphere is microbial.", "meta": {"kind": "terrestrial", "orbit": "0.902 AU", "gravity": "0.577 g", "temperature": "332 K", "atmosphere": "N2", "habitability": 0.67, "biosphere": "microbial", "moons": 0}, "children": [{"id": "evt:0041", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "2.45 Gyr", "age_gyr": 2.45, "severity": 0.62, "scope": "planet", "tags": "life"}, "children": []}, {"id": "evt:0042", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "6.05 Gyr", "age_gyr": 6.054, "severity": 0.51, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0032", "label": "Auryn II", "kind": "planet", "detail": "Auryn II is a rogue world orbiting at 14.143 AU with 0.862g and a mean temperature of 86 K under H2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "rogue", "orbit": "14.143 AU", "gravity": "0.862 g", "temperature": "86 K", "atmosphere": "H2", "habitability": 0.35, "biosphere": "prebiotic", "moons": 3}, "children": [{"id": "evt:0044", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.38 Gyr", "age_gyr": 1.375, "severity": 0.65, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0043", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "7.71 Gyr", "age_gyr": 7.714, "severity": 0.61, "scope": "planet", "tags": "atmosphere"}, "children": []}]}, {"id": "pln:0033", "label": "Ithune III", "kind": "planet", "detail": "Ithune III is a terrestrial world orbiting at 0.34 AU with 2.017g and a mean temperature of 479 K under N2-rich air. Its biosphere is sterile.", "meta": {"kind": "terrestrial", "orbit": "0.34 AU", "gravity": "2.017 g", "temperature": "479 K", "atmosphere": "N2", "habitability": 0.3, "biosphere": "sterile", "moons": 4}, "children": [{"id": "evt:0046", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.49 Gyr", "age_gyr": 0.486, "severity": 0.63, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0045", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "2.57 Gyr", "age_gyr": 2.57, "severity": 0.84, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0047", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "11.12 Gyr", "age_gyr": 11.119, "severity": 0.46, "scope": "planet", "tags": "life, exotic"}, "children": []}]}, {"id": "pln:0034", "label": "Oshwei IV", "kind": "planet", "detail": "Oshwei IV is a desert world orbiting at 1.04 AU with 1.777g and a mean temperature of 366 K under CO2-rich air. Its biosphere is microbial.", "meta": {"kind": "desert", "orbit": "1.04 AU", "gravity": "1.777 g", "temperature": "366 K", "atmosphere": "CO2", "habitability": 0.48, "biosphere": "microbial", "moons": 1}, "children": [{"id": "evt:0049", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "1.93 Gyr", "age_gyr": 1.932, "severity": 0.67, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0050", "label": "Climate collapse", "kind": "event", "detail": "Runaway feedbacks unravel the biosphere's margin for error, forcing whatever lives here to adapt fast or vanish.", "meta": {"age": "7.10 Gyr", "age_gyr": 7.1, "severity": 0.7, "scope": "planet", "tags": "climate, life"}, "children": []}, {"id": "evt:0048", "label": "First life", "kind": "event", "detail": "Self-replicating chemistry appears in a warm coastal basin and begins to reshape the atmosphere.", "meta": {"age": "8.86 Gyr", "age_gyr": 8.859, "severity": 0.43, "scope": "planet", "tags": "life"}, "children": []}]}, {"id": "evt:0037", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "0.89 Gyr", "age_gyr": 0.891, "severity": 0.82, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0039", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "2.65 Gyr", "age_gyr": 2.654, "severity": 0.64, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0040", "label": "Large-scale structure collapse", "kind": "event", "detail": "A rare overdensity pulls a supercluster into a single gravitationally bound cathedral of galaxies.", "meta": {"age": "4.86 Gyr", "age_gyr": 4.864, "severity": 0.62, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0035", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "4.93 Gyr", "age_gyr": 4.932, "severity": 0.74, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0038", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "9.48 Gyr", "age_gyr": 9.476, "severity": 0.41, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0036", "label": "Symmetry-breaking phase transition", "kind": "event", "detail": "A late phase transition changes the vacuum expectation values, nudging chemistry across the entire branch.", "meta": {"age": "9.98 Gyr", "age_gyr": 9.98, "severity": 0.7, "scope": "universe", "tags": "exotic"}, "children": []}]}, {"id": "uni:0003", "label": "Rhoos", "kind": "universe", "detail": "Rhoos is a marginal branch 0 generations from the Big Bang. Constants run wild here: gravity 1.316. It has 4 large spatial dimensions. Given roughly 15.10 Gyr of history, it holds 3 notable worlds and expands toward a heat death.", "meta": {"generation": 0, "destiny": "heat death", "age": "15.1 Gyr", "age_gyr": 15.1, "habitability": 0.47, "expansion": 1.26, "worlds": 3, "gravity": 1.316, "strong_force": 1.058, "dark_energy": 1.189, "entropy": 0.94, "dimensions": 4.0}, "children": [{"id": "pln:0051", "label": "Rynyn I", "kind": "planet", "detail": "Rynyn I is a desert world orbiting at 0.31 AU with 1.261g and a mean temperature of 414 K under CO2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "desert", "orbit": "0.31 AU", "gravity": "1.261 g", "temperature": "414 K", "atmosphere": "CO2", "habitability": 0.37, "biosphere": "prebiotic", "moons": 4}, "children": [{"id": "evt:0058", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.10 Gyr", "age_gyr": 1.104, "severity": 0.85, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0059", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "1.57 Gyr", "age_gyr": 1.568, "severity": 0.35, "scope": "planet", "tags": "life, exotic"}, "children": []}, {"id": "evt:0060", "label": "Climate collapse", "kind": "event", "detail": "Runaway feedbacks unravel the biosphere's margin for error, forcing whatever lives here to adapt fast or vanish.", "meta": {"age": "1.68 Gyr", "age_gyr": 1.682, "severity": 0.77, "scope": "planet", "tags": "climate, life"}, "children": []}, {"id": "evt:0061", "label": "Supervolcanic province", "kind": "event", "detail": "A flood-basalt province erupts for a million years, resetting the climate and enriching the crust in rare metals.", "meta": {"age": "2.58 Gyr", "age_gyr": 2.578, "severity": 0.69, "scope": "planet", "tags": "geology"}, "children": []}, {"id": "evt:0057", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "3.10 Gyr", "age_gyr": 3.103, "severity": 0.85, "scope": "planet", "tags": "life, cataclysm"}, "children": []}]}, {"id": "pln:0052", "label": "Eryn II", "kind": "planet", "detail": "Eryn II is a ice world orbiting at 14.552 AU with 1.189g and a mean temperature of 49 K under N2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "ice", "orbit": "14.552 AU", "gravity": "1.189 g", "temperature": "49 K", "atmosphere": "N2", "habitability": 0.29, "biosphere": "prebiotic", "moons": 1}, "children": [{"id": "evt:0063", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "0.44 Gyr", "age_gyr": 0.439, "severity": 0.47, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0064", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "10.72 Gyr", "age_gyr": 10.722, "severity": 0.54, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0062", "label": "Rogue-world capture", "kind": "event", "detail": "A sunless wanderer drifts through the system, perturbing orbits and briefly heating the outer worlds.", "meta": {"age": "13.46 Gyr", "age_gyr": 13.465, "severity": 0.61, "scope": "planet", "tags": "orbital, exotic"}, "children": []}]}, {"id": "pln:0053", "label": "Tynwei III", "kind": "planet", "detail": "Tynwei III is a gas giant world orbiting at 1.923 AU with 1.474g and a mean temperature of 117 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "1.923 AU", "gravity": "1.474 g", "temperature": "117 K", "atmosphere": "H2", "habitability": 0.27, "biosphere": "sterile", "moons": 19}, "children": [{"id": "evt:0065", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "2.21 Gyr", "age_gyr": 2.215, "severity": 0.64, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0066", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "13.21 Gyr", "age_gyr": 13.206, "severity": 0.67, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "evt:0056", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "4.71 Gyr", "age_gyr": 4.711, "severity": 0.36, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0054", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "6.80 Gyr", "age_gyr": 6.798, "severity": 0.53, "scope": "universe", "tags": "structure"}, "children": []}, {"id": "evt:0055", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "11.57 Gyr", "age_gyr": 11.574, "severity": 0.88, "scope": "universe", "tags": "expansion"}, "children": []}]}, {"id": "uni:0004", "label": "Galos", "kind": "universe", "detail": "Galos is a life-friendly branch 0 generations from the Big Bang. Constants run wild here: entropy 0.588. Given roughly 14.20 Gyr of history, it holds 5 notable worlds and expands toward a eternal stagnation.", "meta": {"generation": 0, "destiny": "eternal stagnation", "age": "14.2 Gyr", "age_gyr": 14.2, "habitability": 0.72, "expansion": 0.88, "worlds": 5, "gravity": 0.935, "strong_force": 0.941, "dark_energy": 0.887, "entropy": 0.588, "dimensions": 3.0}, "children": [{"id": "pln:0067", "label": "Oshion I", "kind": "planet", "detail": "Oshion I is a gas giant world orbiting at 1.613 AU with 4.029g and a mean temperature of 265 K under H2-rich air. Its biosphere is multicellular.", "meta": {"kind": "gas giant", "orbit": "1.613 AU", "gravity": "4.029 g", "temperature": "265 K", "atmosphere": "H2", "habitability": 0.48, "biosphere": "multicellular", "moons": 27}, "children": [{"id": "evt:0078", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "0.73 Gyr", "age_gyr": 0.727, "severity": 0.58, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0081", "label": "Great oxygenation", "kind": "event", "detail": "Photosynthesis floods the air with oxygen, poisoning much of the existing biosphere and enabling complex life.", "meta": {"age": "1.99 Gyr", "age_gyr": 1.994, "severity": 0.55, "scope": "planet", "tags": "life, atmosphere"}, "children": []}, {"id": "evt:0079", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "2.99 Gyr", "age_gyr": 2.988, "severity": 0.72, "scope": "planet", "tags": "climate"}, "children": []}, {"id": "evt:0080", "label": "Climate collapse", "kind": "event", "detail": "Runaway feedbacks unravel the biosphere's margin for error, forcing whatever lives here to adapt fast or vanish.", "meta": {"age": "6.26 Gyr", "age_gyr": 6.26, "severity": 0.97, "scope": "planet", "tags": "climate, life"}, "children": []}]}, {"id": "pln:0068", "label": "Zarix II", "kind": "planet", "detail": "Zarix II is a terrestrial world orbiting at 1.441 AU with 2.474g and a mean temperature of 287 K under N2-rich air. Its biosphere is multicellular.", "meta": {"kind": "terrestrial", "orbit": "1.441 AU", "gravity": "2.474 g", "temperature": "287 K", "atmosphere": "N2", "habitability": 0.66, "biosphere": "multicellular", "moons": 0}, "children": [{"id": "evt:0082", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "3.23 Gyr", "age_gyr": 3.231, "severity": 0.69, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0083", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "7.92 Gyr", "age_gyr": 7.922, "severity": 0.52, "scope": "planet", "tags": "orbital"}, "children": []}]}, {"id": "pln:0069", "label": "Pellora III", "kind": "planet", "detail": "Pellora III is a terrestrial world orbiting at 2.39 AU with 3.606g and a mean temperature of 205 K under N2-rich air. Its biosphere is microbial.", "meta": {"kind": "terrestrial", "orbit": "2.39 AU", "gravity": "3.606 g", "temperature": "205 K", "atmosphere": "N2", "habitability": 0.5, "biosphere": "microbial", "moons": 3}, "children": [{"id": "evt:0085", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "9.15 Gyr", "age_gyr": 9.155, "severity": 0.62, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0084", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "9.27 Gyr", "age_gyr": 9.274, "severity": 0.45, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0070", "label": "Morwei IV", "kind": "planet", "detail": "Morwei IV is a gas giant world orbiting at 4.404 AU with 4.89g and a mean temperature of 153 K under H2-rich air. Its biosphere is sterile.", "meta": {"kind": "gas giant", "orbit": "4.404 AU", "gravity": "4.89 g", "temperature": "153 K", "atmosphere": "H2", "habitability": 0.26, "biosphere": "sterile", "moons": 4}, "children": [{"id": "evt:0089", "label": "Orbital destabilization", "kind": "event", "detail": "Resonances with a giant neighbour scatter the planet's orbit, swinging its climate between extremes.", "meta": {"age": "0.95 Gyr", "age_gyr": 0.955, "severity": 0.57, "scope": "planet", "tags": "orbital"}, "children": []}, {"id": "evt:0087", "label": "Impact winter", "kind": "event", "detail": "A body the size of a small moon strikes, throwing enough dust into the sky to darken the world for centuries.", "meta": {"age": "2.05 Gyr", "age_gyr": 2.05, "severity": 0.66, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0088", "label": "Mass extinction", "kind": "event", "detail": "A compounding crisis erases the majority of species; the survivors inherit a hollow world.", "meta": {"age": "11.94 Gyr", "age_gyr": 11.938, "severity": 0.99, "scope": "planet", "tags": "life, cataclysm"}, "children": []}, {"id": "evt:0086", "label": "Snowball epoch", "kind": "event", "detail": "Runaway ice albedo whitens the whole globe; photosynthesis retreats to a few volcanic refugia.", "meta": {"age": "13.61 Gyr", "age_gyr": 13.611, "severity": 0.64, "scope": "planet", "tags": "climate"}, "children": []}]}, {"id": "pln:0071", "label": "Morar V", "kind": "planet", "detail": "Morar V is a desert world orbiting at 0.707 AU with 1.657g and a mean temperature of 505 K under CO2-rich air. Its biosphere is prebiotic.", "meta": {"kind": "desert", "orbit": "0.707 AU", "gravity": "1.657 g", "temperature": "505 K", "atmosphere": "CO2", "habitability": 0.32, "biosphere": "prebiotic", "moons": 3}, "children": [{"id": "evt:0090", "label": "Late heavy bombardment", "kind": "event", "detail": "A rain of leftover planetesimals reshapes the crust and delivers water and organics in equal measure.", "meta": {"age": "1.47 Gyr", "age_gyr": 1.472, "severity": 0.8, "scope": "planet", "tags": "impact"}, "children": []}, {"id": "evt:0092", "label": "Magnetosphere collapse", "kind": "event", "detail": "The core dynamo stalls and the magnetic shield fails, letting the stellar wind strip the atmosphere away.", "meta": {"age": "8.36 Gyr", "age_gyr": 8.356, "severity": 0.84, "scope": "planet", "tags": "atmosphere"}, "children": []}, {"id": "evt:0091", "label": "Panspermia vector", "kind": "event", "detail": "A fragment of a neighbouring biosphere, flung free by an impact, arrives intact enough to seed new chemistry.", "meta": {"age": "13.07 Gyr", "age_gyr": 13.069, "severity": 0.45, "scope": "planet", "tags": "life, exotic"}, "children": []}]}, {"id": "evt:0072", "label": "Hypernova gamma-ray burst", "kind": "event", "detail": "A rotating super-massive star dies as a hypernova, raking nearby systems with sterilizing radiation.", "meta": {"age": "4.90 Gyr", "age_gyr": 4.901, "severity": 0.62, "scope": "universe", "tags": "radiation"}, "children": []}, {"id": "evt:0073", "label": "Domain-wall turbulence", "kind": "event", "detail": "Mismatched vacuum patches collide along domain walls, injecting enormous energy into the cosmic horizon.", "meta": {"age": "6.82 Gyr", "age_gyr": 6.82, "severity": 0.65, "scope": "universe", "tags": "cataclysm, exotic"}, "children": []}, {"id": "evt:0076", "label": "Dark-energy surge", "kind": "event", "detail": "Vacuum energy briefly dominates, accelerating expansion and isolating young galaxies beyond one another's reach.", "meta": {"age": "9.75 Gyr", "age_gyr": 9.747, "severity": 0.81, "scope": "universe", "tags": "expansion"}, "children": []}, {"id": "evt:0074", "label": "Baryon-asymmetry anomaly", "kind": "event", "detail": "An unusually strong matter/antimatter imbalance leaves a dense, metal-rich medium where the first stars burn fast and die young.", "meta": {"age": "9.95 Gyr", "age_gyr": 9.951, "severity": 0.38, "scope": "universe", "tags": "chemistry"}, "children": []}, {"id": "evt:0077", "label": "Cosmic string network", "kind": "event", "detail": "One-dimensional topological defects from the early universe stretch across intergalactic space, seeding gravitationally lensed filaments.", "meta": {"age": "13.24 Gyr", "age_gyr": 13.239, "severity": 0.5, "scope": "universe", "tags": "structure, exotic"}, "children": []}, {"id": "evt:0075", "label": "Galactic merger cascade", "kind": "event", "detail": "Two spiral galaxies collide and merge, quenching star formation and relocating entire planetary systems.", "meta": {"age": "13.42 Gyr", "age_gyr": 13.419, "severity": 0.62, "scope": "universe", "tags": "structure"}, "children": []}]}]}, "title": "The Aeloria Multiverse", "live": false};</script>
+<script>
+"use strict";
+let DATA = null, LIVE = false, TITLE = "Cosmos", PROVIDER = null;
+const API_BASE = (window.COSMOS_API_BASE || "").replace(/\/$/, "");
+
+const KIND_COLORS = {
+  root:"#f5c451", bigbang:"#ff8a3d", epoch:"#d9b64a",
+  universe:"#5b8def", planet:"#3fbf7f", event:"#c678dd"
+};
+const KIND_LABEL = {
+  root:"Cosmos", bigbang:"Origin", epoch:"Epoch",
+  universe:"Universe", planet:"Planet", event:"Event"
+};
+const CAN_EXPAND = {root:1, bigbang:1, universe:1, planet:1, event:1, epoch:0};
+const ROW = 38, GAP = 62, MINW = 150, PADX = 16, CHAR = 7.7, NODEH = 26;
+const SEC_PER_YEAR = 31557600;
+
+const svg = document.getElementById("map");
+const viewport = document.getElementById("viewport");
+const linksG = document.getElementById("links");
+const nodesG = document.getElementById("nodes");
+const panel = document.getElementById("panel");
+const searchBox = document.getElementById("search");
+const zoomSlider = document.getElementById("zoom");
+const zoomVal = document.getElementById("zoomval");
+const tl = document.getElementById("timeline");
+const tlBody = document.getElementById("tl-body");
+const tlSvg = document.getElementById("tl");
+const toast = document.getElementById("toast");
+const seedInput = document.getElementById("seed");
+const archiveModal = document.getElementById("archive-modal");
+const archiveName = document.getElementById("archive-name");
+const archiveList = document.getElementById("archive-list");
+const archiveStatus = document.getElementById("archive-status");
+
+let collapsed = new Set();
+let query = "";
+let scale = 1, tx = 40, ty = 40;
+let bounds = { w: 1200, h: 800 };
+let byId = new Map();
+let parentIndex = new Map();
+let selectedId = null;
+let knownIds = new Set();
+let freshIds = new Set();
+let smoothTimer = 0;
+let busy = null;
+let lastTap = { t: 0, x: 0, y: 0 };
+let evolving = false, evolveTimer = 0, evolveBusy = false, evolveCount = 0;
+const tlPlay = { active:false, raf:0, t:0, maxAge:1, x:null, top:0, bottom:0,
+                 dots:[], bars:[], head:null, clock:null };
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+/* ------------------------------------------------------------------ */
+function sevColor(sev){
+  const s = Math.max(0, Math.min(1, Number(sev) || 0.5));
+  return `hsl(${285 - 15 * s}, 62%, ${62 - 12 * s}%)`;
+}
+function nodeColor(n){
+  if (n.kind === "event") return sevColor((n.meta && n.meta.severity) || 0.5);
+  return KIND_COLORS[n.kind] || "#9aa4bb";
+}
+function labelText(n){
+  const icon = { root:"✦", bigbang:"✷", epoch:"·", universe:"◆", planet:"●", event:"▲" }[n.kind] || "•";
+  return icon + "  " + n.label;
+}
+function nodeWidth(n){ return Math.max(MINW, labelText(n).length * CHAR + PADX * 2 + 6); }
+function escapeHtml(s){
+  return String(s == null ? "" : s).replace(/[&<>"]/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+}
+function pathD(x1, y1, x2, y2){
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
+function walkAll(node, depth, fn){
+  fn(node, depth);
+  (node.children || []).forEach(c => walkAll(c, depth + 1, fn));
+}
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+function syncChrome(){
+  const bar = document.getElementById("bar");
+  if (bar) document.documentElement.style.setProperty("--barh", bar.offsetHeight + "px");
+}
+window.addEventListener("resize", syncChrome);
+
+/* ------------------------------------------------------------------ */
+/* mind map                                                            */
+/* ------------------------------------------------------------------ */
+function computeLayout(){
+  const vis = [];
+  let cursor = 0;
+  const depthWidth = {};
+  let maxDepth = 0;
+  byId = new Map();
+
+  function visit(node, depth){
+    node._depth = depth;
+    node._w = nodeWidth(node);
+    byId.set(node.id, node);
+    depthWidth[depth] = Math.max(depthWidth[depth] || 0, node._w);
+    maxDepth = Math.max(maxDepth, depth);
+    const folded = collapsed.has(node.id);
+    const kids = (!folded && node.children && node.children.length) ? node.children : [];
+    node._kids = kids;
+    vis.push(node);
+    if (!kids.length){ node._y = cursor; cursor += ROW; }
+    else {
+      kids.forEach(k => visit(k, depth + 1));
+      node._y = (kids[0]._y + kids[kids.length - 1]._y) / 2;
+    }
+  }
+  visit(DATA, 0);
+
+  const offset = [];
+  let x = 0;
+  for (let d = 0; d <= maxDepth; d++){ offset[d] = x; x += (depthWidth[d] || MINW) + GAP; }
+  vis.forEach(n => { n._x = offset[n._depth]; });
+  bounds = { w: Math.max(x - GAP, 400), h: Math.max(cursor, 200) };
+  return vis;
+}
+
+function render(){
+  parentIndex = new Map();
+  walkAll(DATA, 0, n => (n.children || []).forEach(c => parentIndex.set(c.id, n.id)));
+
+  const vis = computeLayout();
+  const q = query.trim().toLowerCase();
+  const hits = new Set();
+  if (q){
+    vis.forEach(n => {
+      if ((n.label + " " + (n.detail || "")).toLowerCase().indexOf(q) >= 0) hits.add(n.id);
+    });
+  }
+  const prev = knownIds;
+  const linkParts = [], nodeParts = [];
+  freshIds = new Set();
+  let enterIndex = 0;
+  vis.forEach(n => {
+    const dim = q && !hits.has(n.id) ? " dim" : "";
+    const hit = hits.has(n.id) ? " hit" : "";
+    const isNew = !prev.has(n.id);
+    if (isNew) freshIds.add(n.id);
+    const delay = isNew ? Math.min(enterIndex++ * 34, 260) : 0;
+    const enter = isNew ? " enter" : "";
+    (n._kids || []).forEach(k => {
+      const isNewLink = !prev.has(k.id);
+      linkParts.push(`<path class="link${isNewLink ? " enter" : ""}" data-parent="${escapeHtml(n.id)}" data-child="${escapeHtml(k.id)}" d="${pathD(n._x + n._w, n._y, k._x, k._y)}" stroke="${nodeColor(k)}" stroke-opacity="0.55" pathLength="1"${isNewLink ? ` style="--d:${delay}ms"` : ""}/>`);
+    });
+    const color = nodeColor(n);
+    const textColor = (n.kind === "root" || n.kind === "bigbang") ? "#0b0f19" : "#08111f";
+    nodeParts.push(
+      `<g class="node${dim}${hit}${enter}" data-id="${escapeHtml(n.id)}" transform="translate(${n._x},${n._y})"${isNew ? ` style="--d:${delay}ms"` : ""}>` +
+      `<rect x="0" y="${-NODEH/2}" width="${n._w}" height="${NODEH}" rx="9" fill="${color}"/>` +
+      `<text x="${PADX}" y="1" fill="${textColor}">${escapeHtml(labelText(n))}</text>` +
+      `</g>`
+    );
+  });
+  linksG.innerHTML = linkParts.join("");
+  nodesG.innerHTML = nodeParts.join("");
+  knownIds = new Set(vis.map(n => n.id));
+  applyTransform();
+  syncZoomUI();
+  if (!tl.classList.contains("hidden")) renderTimeline();
+}
+
+function applyTransform(smoothMotion){
+  if (smoothMotion){
+    viewport.classList.add("smooth");
+    clearTimeout(smoothTimer);
+    smoothTimer = setTimeout(() => viewport.classList.remove("smooth"), 470);
+  }
+  viewport.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
+}
+function stopSmooth(){
+  viewport.classList.remove("smooth");
+  clearTimeout(smoothTimer);
+}
+function syncZoomUI(){
+  zoomSlider.value = Math.round(scale * 100);
+  zoomVal.textContent = Math.round(scale * 100) + "%";
+}
+function visibleCenter(){
+  const rect = svg.getBoundingClientRect();
+  const panelH = tl.classList.contains("hidden") ? 0 : tl.offsetHeight;
+  return { cx: rect.width / 2, cy: Math.max(60, (rect.height - panelH) / 2) };
+}
+function setScale(next, cx, cy, animate){
+  next = Math.min(3.5, Math.max(0.08, next));
+  if (cx == null){ const c = visibleCenter(); cx = c.cx; cy = c.cy; }
+  tx = cx - (cx - tx) * (next / scale);
+  ty = cy - (cy - ty) * (next / scale);
+  scale = next;
+  applyTransform(!!animate); syncZoomUI();
+}
+function fit(animate){
+  const c = visibleCenter();
+  const s = Math.min((svg.getBoundingClientRect().width - 90) / bounds.w,
+                     (c.cy * 2 - 60) / bounds.h, 1.6);
+  scale = Math.max(0.08, s);
+  tx = Math.max(20, (svg.getBoundingClientRect().width - bounds.w * scale) / 2);
+  ty = Math.max(20, c.cy - bounds.h * scale / 2);
+  applyTransform(animate !== false); syncZoomUI();
+}
+function resetZoom(){
+  scale = 1;
+  const c = visibleCenter();
+  tx = 40; ty = Math.max(20, c.cy - bounds.h / 2);
+  applyTransform(true); syncZoomUI();
+}
+function centerOnNode(id, animate){
+  const node = byId.get(id);
+  if (!node) return;
+  const c = visibleCenter();
+  tx = c.cx - (node._x + node._w / 2) * scale;
+  ty = c.cy - node._y * scale;
+  applyTransform(!!animate);
+}
+function flashNode(id){
+  let el = null;
+  try { el = document.querySelector(`g.node[data-id="${CSS.escape(id)}"]`); }
+  catch (_) { el = document.querySelector(`g.node[data-id="${String(id).replace(/"/g, '\\"')}"]`); }
+  if (!el) return;
+  el.classList.add("hit");
+  clearTimeout(flashNode._t);
+  flashNode._t = setTimeout(() => el.classList.remove("hit"), 700);
+}
+function highlightChain(id){
+  const chain = new Set(), links = new Set();
+  let cur = id;
+  while (cur){
+    chain.add(cur);
+    const parent = parentIndex.get(cur);
+    if (!parent) break;
+    links.add(parent + ">" + cur);
+    cur = parent;
+  }
+  document.querySelectorAll("g.node").forEach(el =>
+    el.classList.toggle("active", chain.has(el.getAttribute("data-id"))));
+  document.querySelectorAll("path.link").forEach(el =>
+    el.classList.toggle("active",
+      links.has(el.getAttribute("data-parent") + ">" + el.getAttribute("data-child"))));
+}
+function clearHighlight(){
+  document.querySelectorAll("g.node.active, path.link.active")
+    .forEach(el => el.classList.remove("active"));
+}
+function revealNode(id){
+  let cur = id;
+  const path = [];
+  while (cur){ path.push(cur); cur = parentIndex.get(cur); }
+  path.forEach(p => collapsed.delete(p));
+  render();
+  const node = byId.get(id);
+  if (!node) return;
+  centerOnNode(id, true);
+  clearHighlight(); highlightChain(id);
+  selectedId = id;
+  showPanel(node);
+}
+function findParentId(id){ return parentIndex.get(id); }
+
+/* ------------------------------------------------------------------ */
+/* details panel                                                       */
+/* ------------------------------------------------------------------ */
+function setStatus(msg, working){
+  const stat = document.getElementById("pstat");
+  if (!stat) return;
+  stat.innerHTML = escapeHtml(msg) +
+    (working ? ' <span class="dot"></span><span class="dot"></span><span class="dot"></span>' : "");
+}
+function showPanel(node){
+  if (!node) return;
+  selectedId = node.id;
+  const rows = Object.keys(node.meta || {}).map(k =>
+    `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(node.meta[k])}</td></tr>`).join("");
+  const working = !!(LIVE && busy && busy.id === node.id);
+  let actions = "";
+  if (LIVE){
+    const canExpand = CAN_EXPAND[node.kind] !== 0;
+    actions = `<div class="actions">
+      <button data-pact="expand" data-id="${escapeHtml(node.id)}" ${canExpand && !working ? "" : "disabled"}>✨ 展开子节点</button>
+      <button data-pact="continue" data-id="${escapeHtml(node.id)}" ${working ? "disabled" : ""}>✍ 续写叙事</button>
+    </div><div class="status" id="pstat">` +
+      (working ? escapeHtml(busy.status) +
+        ' <span class="dot"></span><span class="dot"></span><span class="dot"></span>' : "") +
+      `</div>`;
+  }
+  panel.innerHTML =
+    `<span class="close" data-close="1">✕</span>` +
+    `<div class="kind">${escapeHtml(KIND_LABEL[node.kind] || node.kind)}</div>` +
+    `<h2 style="color:${nodeColor(node)}">${escapeHtml(node.label)}</h2>` +
+    `<p id="pdetail">${escapeHtml(node.detail || "")}</p>` +
+    (rows ? `<table>${rows}</table>` : "") + actions;
+  panel.classList.remove("hidden");
+}
+function parseSse(block){
+  let event = "message", data = "";
+  block.split("\n").forEach(line => {
+    if (line.indexOf("event:") === 0) event = line.slice(6).trim();
+    else if (line.indexOf("data:") === 0) data += line.slice(5).trim();
+  });
+  let parsed = {};
+  try { parsed = JSON.parse(data || "{}"); } catch (_) { parsed = {}; }
+  return { event: event, data: parsed };
+}
+async function consumeStream(res, id, node, base){
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let delta = "";
+  const applyDelta = () => {
+    node.detail = base ? base + "\n\n" + delta : delta;
+    const p = document.getElementById("pdetail");
+    if (p){ p.textContent = node.detail; p.classList.add("streaming"); }
+  };
+  while (true){
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0){
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      const msg = parseSse(block);
+      if (msg.event === "phase"){
+        if (busy){ busy.status = msg.data.message || "生成中"; setStatus(busy.status, true); }
+      } else if (msg.event === "delta"){
+        delta += String(msg.data.text || "");
+        applyDelta();
+      } else if (msg.event === "node"){
+        node.children = (node.children || []).concat([msg.data]);
+        collapsed.delete(id);
+        if (busy) busy.status = "新分支正在生长";
+        render();
+        showPanel(byId.get(id) || node);
+        const p = document.getElementById("pdetail");
+        if (p) p.classList.add("streaming");
+        setStatus(busy ? busy.status : "生成中", true);
+        flashNode(msg.data.id);
+      } else if (msg.event === "done"){
+        if (msg.data.narrative) node.detail = msg.data.narrative;
+      } else if (msg.event === "error"){
+        throw new Error(msg.data.error || "生成失败");
+      }
+    }
+  }
+}
+async function callExpand(id, action, btn){
+  const node = byId.get(id);
+  if (!node || (busy && busy.id === id)) return;
+  const base = node.detail || "";
+  busy = { id: id, action: action,
+           status: action === "expand" ? "正在生成新的分支" : "正在续写叙事" };
+  panel.classList.add("working");
+  showPanel(node);
+  let streamed = false;
+  try {
+    let res = null;
+    try {
+      res = await fetch(API_BASE + "/api/expand/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id, action: action })
+      });
+      if (!res.ok || !res.body) res = null;
+    } catch (_) { res = null; }
+
+    if (res && res.body){
+      streamed = true;
+      await consumeStream(res, id, node, base);
+    } else {
+      const plain = await fetch(API_BASE + "/api/expand", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id, action: action })
+      });
+      const data = await plain.json();
+      if (!plain.ok) throw new Error(data.error || ("HTTP " + plain.status));
+      if (data.narrative) node.detail = data.narrative;
+      if (Array.isArray(data.children) && data.children.length){
+        node.children = (node.children || []).concat(data.children);
+        collapsed.delete(id);
+      }
+      render();
+    }
+    busy = null;
+    panel.classList.remove("working");
+    showPanel(byId.get(id) || node);
+    setStatus(streamed ? "实时生成完成 ✓" : "完成 ✓");
+    centerOnNode(id, true);
+    flashNode(id);
+    showToast(streamed ? "实时生成完成" : "生成完成");
+  } catch (err){
+    busy = null;
+    panel.classList.remove("working");
+    showPanel(byId.get(id) || node);
+    setStatus("失败：" + err.message);
+    showToast("LLM 调用失败：" + err.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* seed regeneration + archives                                        */
+/* ------------------------------------------------------------------ */
+async function regenerateFromSeed(){
+  if (!LIVE){ showToast("按种子生成需要 serve 模式"); return; }
+  const raw = seedInput ? seedInput.value.trim() : "";
+  const btn = document.querySelector('[data-act="regenerate"]');
+  if (btn) btn.disabled = true;
+  showToast(raw ? "正在按种子 " + raw + " 生成…" : "正在随机生成新宇宙…");
+  const wasEvolving = evolving;
+  try {
+    const body = raw ? { seed: raw } : {};
+    const res = await fetch(API_BASE + "/api/regenerate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    stopEvolving();
+    applyPayload(data);
+    showToast("已生成新宇宙 · 种子 " + data.seed);
+    if (wasEvolving && providerIsMock(PROVIDER)) startEvolving(false);
+  } catch (err){
+    showToast("生成失败：" + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+function archiveSetStatus(message){
+  if (archiveStatus) archiveStatus.textContent = message || "";
+}
+function fmtArchiveDate(iso){
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return iso;
+  return date.toLocaleString();
+}
+function openArchive(){
+  if (!LIVE){ showToast("存档需要 serve 模式"); return; }
+  archiveModal.classList.remove("hidden");
+  document.getElementById("archive-btn").classList.add("on");
+  loadArchiveList();
+  setTimeout(() => { if (archiveName) archiveName.focus(); }, 60);
+}
+function closeArchive(){
+  archiveModal.classList.add("hidden");
+  document.getElementById("archive-btn").classList.remove("on");
+}
+function renderArchiveList(items){
+  if (!archiveList) return;
+  if (!items.length){
+    archiveList.innerHTML = '<div class="empty">还没有存档</div>';
+    return;
+  }
+  archiveList.innerHTML = items.map(a => {
+    const seed = (a.seed == null ? "—" : a.seed);
+    const meta = "种子 " + seed +
+      (a.nodes ? " · " + a.nodes + " 节点" : "") +
+      (a.created ? " · " + fmtArchiveDate(a.created) : "");
+    return `<div class="archive-item">
+      <div class="archive-main"><b>${escapeHtml(a.name || a.id)}</b>
+        <span>${escapeHtml(meta)}</span></div>
+      <div class="archive-actions">
+        <button data-archive-load="${escapeHtml(a.id)}">读取</button>
+        <a href="${API_BASE}/api/archive?id=${encodeURIComponent(a.id)}"
+           download="${escapeHtml(a.id)}.json">下载</a>
+      </div></div>`;
+  }).join("");
+}
+async function loadArchiveList(){
+  archiveSetStatus("读取存档列表…");
+  try {
+    const res = await fetch(API_BASE + "/api/archives", { cache: "no-store" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    const items = Array.isArray(data.archives) ? data.archives : [];
+    renderArchiveList(items);
+    archiveSetStatus(items.length ? "共 " + items.length + " 个存档" : "");
+  } catch (err){
+    archiveSetStatus("读取失败：" + err.message);
+    if (archiveList) archiveList.innerHTML = '<div class="empty">读取失败</div>';
+  }
+}
+async function saveArchive(){
+  const btn = document.getElementById("archive-save");
+  if (btn) btn.disabled = true;
+  archiveSetStatus("正在保存…");
+  try {
+    const res = await fetch(API_BASE + "/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: archiveName ? archiveName.value.trim() : "" })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    archiveSetStatus("已保存 · " + data.name);
+    if (archiveName) archiveName.value = "";
+    showToast("存档已保存：" + data.name);
+    await loadArchiveList();
+  } catch (err){
+    archiveSetStatus("保存失败：" + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+async function loadArchive(archiveId){
+  const wasEvolving = evolving;
+  archiveSetStatus("正在读取存档…");
+  try {
+    const res = await fetch(API_BASE + "/api/load", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: archiveId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    stopEvolving();
+    applyPayload(data);
+    closeArchive();
+    showToast("已读取存档 · 种子 " + data.seed);
+    if (wasEvolving && providerIsMock(PROVIDER)) startEvolving(false);
+  } catch (err){
+    archiveSetStatus("读取失败：" + err.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* autonomous evolution (dynamic mode)                                 */
+/* ------------------------------------------------------------------ */
+function providerIsMock(p){
+  if (!p) return false;
+  if (p.provider === "mock") return true;
+  return Array.isArray(p.chain) && p.chain.some(providerIsMock);
+}
+function nodeCount(){
+  let count = 0;
+  walkAll(DATA, 0, () => { count += 1; });
+  return count;
+}
+function evolveTarget(){
+  const pools = { planet: [], event: [], universe: [] };
+  const visible = [], all = [];
+  walkAll(DATA, 0, n => {
+    if (!pools[n.kind] || CAN_EXPAND[n.kind] === 0) return;
+    all.push(n);
+    if (byId.has(n.id)) visible.push(n);
+  });
+  const source = visible.length ? visible : all;
+  source.forEach(n => pools[n.kind].push(n));
+  const pool = pools.planet.concat(pools.event, pools.event, pools.universe);
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+}
+function updateEvolveUI(){
+  const btn = document.getElementById("evolve-btn");
+  if (!btn) return;
+  btn.classList.toggle("on", evolving);
+  btn.textContent = evolving ? "● 动态演化" : "动态演化";
+  btn.title = evolving
+    ? "正在持续生成新分支 · 点击暂停（本次已生长 " + evolveCount + "）"
+    : "持续自动生成新分支";
+}
+function scheduleEvolve(delay){
+  clearTimeout(evolveTimer);
+  if (!evolving) return;
+  evolveTimer = setTimeout(evolveOnce, delay == null ? 2200 + Math.random() * 2400 : delay);
+}
+function startEvolving(auto){
+  if (!LIVE){ showToast("动态演化需要 serve 模式"); return; }
+  if (evolving) return;
+  evolving = true;
+  updateEvolveUI();
+  showToast(auto ? "已开启动态演化（mock 自动生成）" : "动态演化已开启");
+  scheduleEvolve(600);
+}
+function stopEvolving(message){
+  evolving = false;
+  clearTimeout(evolveTimer);
+  evolveTimer = 0;
+  updateEvolveUI();
+  if (message) showToast(message);
+}
+function toggleEvolving(){
+  if (evolving) stopEvolving("动态演化已暂停");
+  else startEvolving(false);
+}
+async function evolveOnce(){
+  if (!evolving) return;
+  if (document.hidden){ scheduleEvolve(1500); return; }
+  if (tlPlay.active){ scheduleEvolve(1400); return; }
+  if (evolveBusy){ scheduleEvolve(800); return; }
+  if (nodeCount() > 420){ stopEvolving("宇宙已足够庞大，动态演化停止"); return; }
+  const node = evolveTarget();
+  if (!node){ stopEvolving("没有可展开的节点了"); return; }
+
+  evolveBusy = true;
+  const action = Math.random() < 0.28 ? "continue" : "expand";
+  const base = node.detail || "";
+  let delta = "";
+  try {
+    const res = await fetch(API_BASE + "/api/expand/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: node.id, action: action })
+    });
+    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let added = 0;
+    while (true){
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      let cut;
+      while ((cut = buffer.indexOf("\n\n")) >= 0){
+        const block = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        const msg = parseSse(block);
+        if (msg.event === "delta"){
+          delta += String(msg.data.text || "");
+          node.detail = base ? base + "\n\n" + delta : delta;
+          if (selectedId === node.id){
+            const p = document.getElementById("pdetail");
+            if (p){ p.textContent = node.detail; p.classList.add("streaming"); }
+          }
+        } else if (msg.event === "node"){
+          node.children = (node.children || []).concat([msg.data]);
+          collapsed.delete(node.id);
+          added += 1;
+          render();
+          flashNode(msg.data.id);
+        } else if (msg.event === "done"){
+          if (msg.data.narrative) node.detail = msg.data.narrative;
+        } else if (msg.event === "error"){
+          throw new Error(msg.data.error || "生成失败");
+        }
+      }
+    }
+    if (added) evolveCount += added;
+    if (selectedId === node.id) showPanel(byId.get(node.id) || node);
+    render();
+    updateEvolveUI();
+    if (added) showToast("新生长 " + added + " 个节点 · " + node.label);
+  } catch (err){
+    stopEvolving("动态演化暂停：" + err.message);
+  } finally {
+    evolveBusy = false;
+    if (evolving) scheduleEvolve();
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* mind map interactions                                               */
+/* ------------------------------------------------------------------ */
+function toggle(node){
+  if (node.children && node.children.length){
+    if (collapsed.has(node.id)) collapsed.delete(node.id);
+    else collapsed.add(node.id);
+  }
+  render();
+  showPanel(node);
+}
+panel.addEventListener("click", e => {
+  if (e.target.getAttribute("data-close")){ panel.classList.add("hidden"); clearHighlight(); return; }
+  const act = e.target.getAttribute && e.target.getAttribute("data-pact");
+  if (act) callExpand(e.target.getAttribute("data-id"), act, e.target);
+});
+nodesG.addEventListener("mouseover", e => {
+  const g = e.target.closest("g.node");
+  if (g) highlightChain(g.getAttribute("data-id"));
+});
+nodesG.addEventListener("mouseout", e => { if (e.target.closest("g.node")) clearHighlight(); });
+
+/* one-finger pan, two-finger pinch, tap to toggle, double-tap to zoom */
+const pointers = new Map();
+let gesture = null;
+function endPointer(e){
+  if (!pointers.has(e.pointerId)) return;
+  const g = gesture;
+  pointers.delete(e.pointerId);
+  const tapped = g && g.kind === "pan" && !g.moved && Date.now() - g.t < 700;
+  if (tapped && pointers.size === 0){
+    const el = g.target && g.target.closest ? g.target.closest("g.node") : null;
+    if (el){
+      const node = byId.get(el.getAttribute("data-id"));
+      if (node) toggle(node);
+    } else {
+      const now = Date.now();
+      if (now - lastTap.t < 330 &&
+          Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 42){
+        const r = svg.getBoundingClientRect();
+        setScale(scale * 1.7, e.clientX - r.left, e.clientY - r.top, true);
+        lastTap.t = 0;
+      } else {
+        lastTap = { t: now, x: e.clientX, y: e.clientY };
+        clearHighlight();
+      }
+    }
+  }
+  if (pointers.size === 0){ gesture = null; svg.classList.remove("dragging"); }
+  else if (pointers.size === 1){
+    const p = [...pointers.values()][0];
+    gesture = { kind: "pan", sx: p.x, sy: p.y, lx: p.x, ly: p.y,
+                moved: true, target: null, t: Date.now() };
+  }
+}
+svg.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  stopSmooth();
+  try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1){
+    gesture = { kind: "pan", sx: e.clientX, sy: e.clientY, lx: e.clientX,
+                ly: e.clientY, moved: false, target: e.target, t: Date.now() };
+  } else if (pointers.size === 2){
+    const pts = [...pointers.values()];
+    const r = svg.getBoundingClientRect();
+    gesture = { kind: "pinch",
+                d: Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)),
+                s0: scale, tx0: tx, ty0: ty,
+                cx: (pts[0].x + pts[1].x) / 2 - r.left,
+                cy: (pts[0].y + pts[1].y) / 2 - r.top,
+                moved: true, target: null, t: Date.now() };
+  }
+});
+svg.addEventListener("pointermove", e => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!gesture) return;
+  if (gesture.kind === "pan" && pointers.size === 1){
+    if (Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > 7) gesture.moved = true;
+    if (gesture.moved){
+      tx += e.clientX - gesture.lx;
+      ty += e.clientY - gesture.ly;
+      applyTransform();
+      svg.classList.add("dragging");
+    }
+    gesture.lx = e.clientX; gesture.ly = e.clientY;
+  } else if (gesture.kind === "pinch" && pointers.size >= 2){
+    const pts = [...pointers.values()].slice(0, 2);
+    const r = svg.getBoundingClientRect();
+    const d = Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
+    const cx = (pts[0].x + pts[1].x) / 2 - r.left;
+    const cy = (pts[0].y + pts[1].y) / 2 - r.top;
+    const next = Math.min(3.5, Math.max(0.08, gesture.s0 * d / gesture.d));
+    scale = next;
+    tx = cx - (gesture.cx - gesture.tx0) * (next / gesture.s0);
+    ty = cy - (gesture.cy - gesture.ty0) * (next / gesture.s0);
+    applyTransform(); syncZoomUI();
+  }
+});
+svg.addEventListener("pointerup", endPointer);
+svg.addEventListener("pointercancel", endPointer);
+svg.addEventListener("wheel", e => {
+  e.preventDefault();
+  stopSmooth();
+  const rect = svg.getBoundingClientRect();
+  setScale(scale * (e.deltaY < 0 ? 1.12 : 0.89), e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+window.addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+  if (e.key === "+" || e.key === "=") setScale(scale * 1.15, null, null, true);
+  else if (e.key === "-" || e.key === "_") setScale(scale / 1.15, null, null, true);
+  else if (e.key === "0") resetZoom();
+  else if (e.key === "f" || e.key === "F") fit();
+});
+
+document.getElementById("bar").addEventListener("click", e => {
+  const act = e.target.getAttribute && e.target.getAttribute("data-act");
+  if (!act) return;
+  if (act === "in") setScale(scale * 1.2, null, null, true);
+  else if (act === "out") setScale(scale / 1.2, null, null, true);
+  else if (act === "fit") fit();
+  else if (act === "reset") resetZoom();
+  else if (act === "expandall"){ collapsed.clear(); render(); }
+  else if (act === "collapse"){
+    collapsed.clear();
+    walkAll(DATA, 0, (n, d) => { if (n.children && n.children.length && d >= 1) collapsed.add(n.id); });
+    render();
+  } else if (act === "evolve") toggleEvolving();
+  else if (act === "regenerate") regenerateFromSeed();
+  else if (act === "archive") openArchive();
+  else if (act === "timeline") toggleTimeline();
+  else if (act === "svg") exportSvg();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearTimeout(evolveTimer);
+  else if (evolving) scheduleEvolve(700);
+});
+
+if (seedInput){
+  seedInput.addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); regenerateFromSeed(); }
+  });
+}
+document.getElementById("archive-save").addEventListener("click", saveArchive);
+document.getElementById("archive-refresh").addEventListener("click", loadArchiveList);
+archiveModal.addEventListener("click", e => {
+  if (e.target === archiveModal || e.target.getAttribute("data-archive-close")) closeArchive();
+});
+archiveList.addEventListener("click", e => {
+  const id = e.target.getAttribute && e.target.getAttribute("data-archive-load");
+  if (id) loadArchive(id);
+});
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !archiveModal.classList.contains("hidden")) closeArchive();
+});
+zoomSlider.addEventListener("input", () => {
+  stopSmooth();
+  setScale(Number(zoomSlider.value) / 100, null, null, false);
+});
+searchBox.addEventListener("input", () => { query = searchBox.value; render(); });
+
+function exportSvg(){
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("viewBox", `0 0 ${Math.round(bounds.w + 80)} ${Math.round(bounds.h + 80)}`);
+  clone.setAttribute("width", Math.round(bounds.w + 80));
+  clone.setAttribute("height", Math.round(bounds.h + 80));
+  const vp = clone.querySelector("#viewport");
+  if (vp){
+    vp.setAttribute("transform", "translate(40,40) scale(1)");
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bg.setAttribute("x", "0"); bg.setAttribute("y", "0");
+    bg.setAttribute("width", "100%"); bg.setAttribute("height", "100%");
+    bg.setAttribute("fill", "#0b0f19");
+    vp.parentNode.insertBefore(bg, vp);
+  }
+  const blob = new Blob([clone.outerHTML], { type: "image/svg+xml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cosmos-mindmap.svg";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ------------------------------------------------------------------ */
+/* timeline                                                            */
+/* ------------------------------------------------------------------ */
+function toggleTimeline(){
+  const hidden = tl.classList.toggle("hidden");
+  document.getElementById("tl-toggle").classList.toggle("on", !hidden);
+  if (!hidden) renderTimeline();
+  else stopPlayback(true);
+}
+function eventTree(node){
+  const out = [];
+  (node.children || []).forEach(c => {
+    if (c.kind === "event"){ out.push(c); out.push(...eventTree(c)); }
+  });
+  return out;
+}
+function collectTimeline(){
+  const universes = (DATA.children || []).filter(c => c.kind === "universe");
+  const bb = (DATA.children || []).find(c => c.kind === "bigbang");
+  let maxAge = 0;
+  universes.forEach(u => { maxAge = Math.max(maxAge, Number((u.meta || {}).age_gyr || 0)); });
+  maxAge = Math.ceil(Math.max(maxAge, 1));
+
+  const rows = [];
+  universes.forEach(u => {
+    const uAge = Number((u.meta || {}).age_gyr || maxAge);
+    rows.push({ label: u.label, id: u.id, barTo: uAge, bar: "#5b8def", events: [] });
+    const uEvents = eventTree(u);
+    if (uEvents.length)
+      rows.push({ label: "宇宙事件", id: u.id, barTo: 0, bar: null, events: uEvents });
+    (u.children || []).filter(c => c.kind === "planet").forEach(p => {
+      rows.push({ label: p.label, id: p.id, barTo: uAge, bar: "#3fbf7f",
+                  events: eventTree(p) });
+    });
+  });
+  const epochs = bb ? (bb.children || []).filter(c => c.kind === "epoch") : [];
+  return { rows, maxAge, epochs };
+}
+function niceStep(maxAge, plotW){
+  const candidates = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50];
+  for (const s of candidates){ if (plotW / (maxAge / s) >= 64) return s; }
+  return 100;
+}
+function updatePlayhead(t, silent){
+  if (!tlPlay.head || !tlPlay.x) return;
+  const x = tlPlay.x;
+  const px = x(t);
+  const head = tlPlay.head;
+  head.classList.remove("hidden");
+  head.querySelector("line").setAttribute("x1", px);
+  head.querySelector("line").setAttribute("x2", px);
+  head.querySelector("line").setAttribute("y1", tlPlay.top - 10);
+  head.querySelector("line").setAttribute("y2", tlPlay.bottom + 2);
+  const dot = head.querySelector("circle");
+  dot.setAttribute("cx", px); dot.setAttribute("cy", tlPlay.top - 10);
+  const label = head.querySelector("text");
+  label.setAttribute("x", px); label.setAttribute("y", tlPlay.top - 16);
+  label.setAttribute("text-anchor", px > tlPlay.x(tlPlay.maxAge) - 60 ? "end" : "middle");
+  label.textContent = t.toFixed(2) + " Gyr";
+  const clock = document.getElementById("tl-clock");
+  if (clock) clock.textContent = t.toFixed(2) + " Gyr";
+  tlPlay.dots.forEach(g => {
+    const age = Number(g.getAttribute("data-age") || 0);
+    const on = age <= t + 1e-9;
+    g.classList.toggle("lit", on);
+    g.classList.toggle("faded", !on);
+    if (on && !g.__lit && !silent) flashNode(g.getAttribute("data-node"));
+    g.__lit = on;
+  });
+  tlPlay.bars.forEach(rect => {
+    const to = Number(rect.getAttribute("data-bar-to") || 0);
+    rect.setAttribute("width", Math.max(2, x(Math.min(t, to)) - x(0)));
+  });
+}
+function stopPlayback(reset){
+  if (tlPlay.raf) cancelAnimationFrame(tlPlay.raf);
+  tlPlay.raf = 0;
+  tlPlay.active = false;
+  const btn = document.getElementById("tl-play");
+  if (btn) btn.textContent = "▶ 播放";
+  if (reset && tlPlay.head){
+    tlPlay.head.classList.add("hidden");
+    updatePlayhead(tlPlay.maxAge, true);
+  }
+  tlPlay.dots.forEach(g => { g.__lit = false; });
+}
+function playTimeline(){
+  if (tl.classList.contains("hidden")){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+    renderTimeline();
+  }
+  if (tlPlay.active){ stopPlayback(true); return; }
+  if (!tlPlay.head) renderTimeline();
+  const btn = document.getElementById("tl-play");
+  if (btn) btn.textContent = "⏸ 暂停";
+  tlPlay.active = true;
+  tlPlay.dots.forEach(g => { g.__lit = false; });
+  updatePlayhead(0, true);
+  const duration = Math.min(15000, Math.max(5200, tlPlay.maxAge * 1300));
+  const started = performance.now();
+  function frame(now){
+    if (!tlPlay.active) return;
+    const p = Math.min(1, (now - started) / duration);
+    updatePlayhead(p * tlPlay.maxAge, false);
+    if (p < 1){
+      tlPlay.raf = requestAnimationFrame(frame);
+    } else {
+      tlPlay.active = false; tlPlay.raf = 0;
+      if (btn) btn.textContent = "▶ 重播";
+      setTimeout(() => { if (!tlPlay.active && tlPlay.head) tlPlay.head.classList.add("hidden"); }, 1000);
+    }
+  }
+  tlPlay.raf = requestAnimationFrame(frame);
+}
+function renderTimeline(){
+  if (tlPlay.active) stopPlayback(false);
+  const { rows, maxAge, epochs } = collectTimeline();
+  const box = tlBody.getBoundingClientRect();
+  const W = Math.max(320, Math.floor(box.width));
+  const gutter = Math.min(176, Math.max(90, Math.round(W * 0.24)));
+  const padR = 22, stripH = 60, rowH = 24;
+  const H = stripH + 10 + rows.length * rowH + 26;
+  tlSvg.setAttribute("width", W); tlSvg.setAttribute("height", H);
+  tlSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const plotW = Math.max(80, W - gutter - padR);
+  const x = t => gutter + (Math.min(Math.max(t, 0), maxAge) / maxAge) * plotW;
+  const p = [];
+  p.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="none"/>`);
+  p.push(`<text x="10" y="16" class="tl-cap">大爆炸纪元 · 对数时间</text>`);
+
+  /* log-scale epoch strip */
+  const minLog = -44, maxLog = 9;
+  const lx = s => gutter + ((Math.log10(Math.max(s, 1e-45)) - minLog) / (maxLog - minLog)) * plotW;
+  p.push(`<line x1="${gutter}" y1="44" x2="${gutter + plotW}" y2="44" class="tl-axis"/>`);
+  p.push(`<text x="${gutter - 6}" y="47" class="tl-gridlabel" text-anchor="end">10⁻⁴⁴s</text>`);
+  p.push(`<text x="${gutter + plotW}" y="47" class="tl-gridlabel" text-anchor="end">10⁹s</text>`);
+  epochs.forEach((e, i) => {
+    const sec = Number((e.meta || {}).age_years || 0) * SEC_PER_YEAR;
+    const px = lx(sec);
+    const ty2 = (i % 2 === 0) ? 24 : 34;
+    p.push(`<line x1="${px}" y1="38" x2="${px}" y2="50" class="tl-tick"/>`);
+    p.push(`<circle cx="${px}" cy="44" r="3.4" fill="#ff8a3d"/>`);
+    p.push(`<text x="${px}" y="${ty2}" class="tl-elabel" text-anchor="middle">${escapeHtml(e.label)}</text>`);
+    p.push(`<g class="tl-ev" data-node="${escapeHtml(e.id)}"><rect x="${px - 7}" y="${ty2 - 11}" width="14" height="28" fill="transparent"/><title>${escapeHtml(e.label)} · ${escapeHtml(((e.meta||{}).age)||"")}</title></g>`);
+  });
+
+  /* linear Gyr axis + rows */
+  const top = stripH + 10;
+  const bottom = top + rows.length * rowH;
+  const step = niceStep(maxAge, plotW);
+  for (let t = 0; t <= maxAge + 1e-9; t += step){
+    const px = x(t);
+    p.push(`<line x1="${px}" y1="${top - 6}" x2="${px}" y2="${bottom}" class="tl-grid"/>`);
+    p.push(`<text x="${px}" y="${bottom + 16}" class="tl-gridlabel" text-anchor="middle">${(Math.round(t * 100) / 100)}</text>`);
+  }
+  p.push(`<text x="${gutter - 6}" y="${top + 4}" class="tl-gridlabel" text-anchor="end">Gyr →</text>`);
+
+  const labelMax = Math.max(8, Math.floor((gutter - 16) / 6.4));
+  rows.forEach((row, i) => {
+    const cy = top + i * rowH + rowH / 2 - 4;
+    p.push(`<text x="10" y="${cy + 4}" class="tl-rowlabel" data-node="${escapeHtml(row.id)}" style="cursor:pointer">${escapeHtml(String(row.label).slice(0, labelMax))}</text>`);
+    if (row.bar && row.barTo > 0){
+      p.push(`<rect class="tl-bar" data-bar-to="${row.barTo}" x="${x(0)}" y="${cy - 4}" width="${Math.max(2, x(row.barTo) - x(0))}" height="8" rx="3" fill="${row.bar}"/>`);
+    }
+    row.events.forEach(ev => {
+      const age = Number((ev.meta || {}).age_gyr || 0);
+      const sev = Number((ev.meta || {}).severity || 0.5);
+      const px = x(age), r = 2.6 + sev * 4;
+      p.push(`<g class="tl-ev" data-node="${escapeHtml(ev.id)}" data-age="${age}">` +
+        `<circle cx="${px}" cy="${cy}" r="${r + 6}" fill="transparent"/>` +
+        `<circle class="tl-dot" cx="${px}" cy="${cy}" r="${r}" fill="${sevColor(sev)}" fill-opacity="0.92"/>` +
+        `<title>${escapeHtml(ev.label)} · ${age.toFixed(2)} Gyr · 严重度 ${sev.toFixed(2)}</title></g>`);
+    });
+  });
+  p.push(`<g id="tl-playhead" class="hidden"><line x1="0" y1="0" x2="0" y2="0"/>` +
+         `<circle cx="0" cy="0" r="3.5"/><text x="0" y="0">0</text></g>`);
+  tlSvg.innerHTML = p.join("");
+  tlPlay.maxAge = maxAge; tlPlay.x = x; tlPlay.top = top; tlPlay.bottom = bottom;
+  tlPlay.head = tlSvg.querySelector("#tl-playhead");
+  tlPlay.dots = Array.from(tlSvg.querySelectorAll(".tl-ev[data-age]"));
+  tlPlay.bars = Array.from(tlSvg.querySelectorAll(".tl-bar[data-bar-to]"));
+  updatePlayhead(maxAge, true);
+}
+tlSvg.addEventListener("click", e => {
+  const g = e.target.closest("[data-node]");
+  if (g) revealNode(g.getAttribute("data-node"));
+});
+document.getElementById("tl-play").addEventListener("click", playTimeline);
+
+/* touch-friendly timeline height handle */
+let tlResize = null;
+const tlHandle = document.getElementById("tl-handle");
+tlHandle.addEventListener("pointerdown", e => {
+  tlResize = { id: e.pointerId, y: e.clientY, h: tl.offsetHeight, raf: 0 };
+  try { tlHandle.setPointerCapture(e.pointerId); } catch (_) {}
+  e.preventDefault();
+});
+tlHandle.addEventListener("pointermove", e => {
+  if (!tlResize || e.pointerId !== tlResize.id) return;
+  const h = Math.min(window.innerHeight - 140, Math.max(140, tlResize.h + (tlResize.y - e.clientY)));
+  tl.style.height = h + "px";
+  if (!tlResize.raf) tlResize.raf = requestAnimationFrame(() => {
+    if (!tlResize) return;
+    tlResize.raf = 0;
+    if (!tl.classList.contains("hidden")) renderTimeline();
+  });
+});
+function tlResizeEnd(e){
+  if (!tlResize || e.pointerId !== tlResize.id) return;
+  if (tlResize.raf) cancelAnimationFrame(tlResize.raf);
+  tlResize = null;
+}
+tlHandle.addEventListener("pointerup", tlResizeEnd);
+tlHandle.addEventListener("pointercancel", tlResizeEnd);
+if (window.ResizeObserver) new ResizeObserver(() => { if (!tl.classList.contains("hidden")) renderTimeline(); }).observe(tlBody);
+window.addEventListener("resize", () => { if (!tl.classList.contains("hidden")) renderTimeline(); });
+
+/* ------------------------------------------------------------------ */
+/* legend + init                                                       */
+/* ------------------------------------------------------------------ */
+(function initLegend(){
+  const el = document.getElementById("legend");
+  const order = ["root","bigbang","epoch","universe","planet","event"];
+  el.innerHTML = "<b style='font-size:11px;letter-spacing:1px;color:#8b97b0'>LEGEND</b>" +
+    order.map(k => `<div class="row"><span class="chip" style="background:${KIND_COLORS[k]}"></span>${KIND_LABEL[k]}</div>`).join("");
+})();
+
+function applyPayload(payload){
+  const timelineOpen = !tl.classList.contains("hidden");
+  DATA = payload.tree;
+  if (!DATA) throw new Error("宇宙数据为空");
+  LIVE = !!payload.live;
+  PROVIDER = payload.provider || PROVIDER;
+  TITLE = payload.title || DATA.label || "Cosmos";
+  document.title = TITLE + " — Cosmos Mind Map";
+  const brand = document.querySelector("#bar .brand");
+  if (brand) brand.textContent = "✦ " + TITLE;
+  if (seedInput){ seedInput.value = (payload.seed == null ? "" : payload.seed); seedInput.disabled = !LIVE; }
+  const seedBtn = document.querySelector('[data-act="regenerate"]');
+  if (seedBtn) seedBtn.disabled = !LIVE;
+  const archiveBtn = document.getElementById("archive-btn");
+  if (archiveBtn) archiveBtn.disabled = !LIVE;
+  stopEvolving();
+  busy = null;
+  evolveBusy = false;
+  evolveCount = 0;
+  selectedId = null;
+  collapsed.clear();
+  knownIds = new Set();
+  query = "";
+  if (searchBox) searchBox.value = "";
+  if (panel) panel.classList.add("hidden");
+  clearHighlight();
+  if (!LIVE){
+    const toggle = document.getElementById("tl-toggle");
+    if (toggle) toggle.title = "打开时间线";
+  }
+  if (timelineOpen){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+  }
+  syncChrome();
+  render();
+  fit();
+}
+
+async function boot(){
+  let payload = window.COSMOS_BOOTSTRAP || null;
+  if (!payload){
+    const res = await fetch(API_BASE + "/api/bootstrap", { cache: "no-store" });
+    if (!res.ok) throw new Error("无法加载宇宙数据 (HTTP " + res.status + ")");
+    payload = await res.json();
+  }
+  if (window.innerWidth >= 1100){
+    tl.classList.remove("hidden");
+    document.getElementById("tl-toggle").classList.add("on");
+  }
+  applyPayload(payload);
+  if (document.fonts && document.fonts.ready){
+    document.fonts.ready.then(() => syncChrome());
+  }
+  if (LIVE && providerIsMock(PROVIDER)) startEvolving(true);
+}
+boot().catch(err => {
+  console.error(err);
+  showToast("加载失败：" + err.message);
+  const brand = document.querySelector("#bar .brand");
+  if (brand) brand.textContent = "✦ 加载失败";
+});
+
+</script>
+</body>
+</html>
